@@ -216,14 +216,69 @@ Gantt.prototype.addBlocks = function(slider, start) {
     }
 };
 
+// Gantt.prototype.addTaskBarText = function(container, record, size) {
+
+//     // Create the text content
+//     const newContent = $('<span>')
+//     .text(record.title + ' ' + record.progress + ' ' + record.assignee)
+//     .css({
+//     position: 'absolute',
+//     whiteSpace: 'nowrap', // Prevent text wrapping
+//     });
+
+//     // Append the text content to the same container as the taskbar
+//     container.parent().append(newContent);
+
+//     // Function to adjust the position of the text
+//     function adjustTextPosition() {
+//     const taskbarOffset = container.offset();
+//     const taskbarWidth = container.outerWidth();
+//     const textWidth = newContent.outerWidth();
+
+//     // Position the text just at the end of the taskbar
+//     newContent.css({
+//     left: taskbarOffset.left + taskbarWidth + textWidth + 20 + 'px', // Align to the end of the taskbar
+//     top: taskbarOffset.top + container.outerHeight() / 2 - newContent.outerHeight() / 2 + 'px', // Center vertically
+//     });
+//     }
+
+//     // Initial position adjustment
+//     adjustTextPosition();
+
+//     // // Set up event listeners to update the position dynamically
+//     // container.on('mousemove resize', function () {
+//     // adjustTextPosition();
+//     // });
+
+//     // // If you're using a drag-and-resize library (like jQuery UI)
+//     container.on('drag resize', function () {
+//     adjustTextPosition();
+//     });
+
+
+// };
+
 Gantt.prototype.addTaskBarText = function(container, record, size) {
-    if (size >= 4) {
-        container.html($('<span>').text(record.title + ' ' + record.progress + ' ' + record.assignee));
-    }
-    else if (size >= 2) {
-        container.html($('<span>').text(record.progress));
-    }
+    var textSpan = $('<span>')
+    .html('<strong>' + record.title + ' ' + record.progress + '</strong> ' + record.assignee);    
+    // Append the text to the container
+    container.html(textSpan);
+
+    // Apply absolute positioning to the text outside the taskbar
+    // container.css({
+    //     "position": "absolute",     // Position the text relative to the taskbar
+    //     "left": "100%",             // Position the text at the right end of the taskbar
+    //     "margin-left": "3px"        // Add some space between the taskbar and text
+    // });
+    container.css({
+        "position": "absolute",     // Position the text relative to the taskbar
+        "left": "100%",             // Position the text at the right end of the taskbar
+        "margin-left": "3px",       // Add some space between the taskbar and text
+        "top": "50%",               // Vertically center the text
+        "transform": "translateY(-50%)"  // Adjust for exact vertical centering
+    });
 };
+
 
 // Get tooltip for vertical header
 Gantt.prototype.getVerticalHeaderTooltip = function(record) {
@@ -315,6 +370,21 @@ Gantt.prototype.setBarColor = function(block, record) {
 };
 
 // Setup jquery-ui resizable
+// Gantt.prototype.listenForBlockResize = function(startDate) {
+//     var self = this;
+
+//     jQuery("div.ganttview-block", this.options.container).resizable({
+//         grid: this.options.cellWidth,
+//         handles: "e,w",
+//         delay: 300,
+//         stop: function() {
+//             var block = jQuery(this);
+//             self.updateDataAndPosition(block, startDate);
+//             self.saveRecord(block.data("record"));
+//         }
+//     });
+// };
+
 Gantt.prototype.listenForBlockResize = function(startDate) {
     var self = this;
 
@@ -322,13 +392,30 @@ Gantt.prototype.listenForBlockResize = function(startDate) {
         grid: this.options.cellWidth,
         handles: "e,w",
         delay: 300,
-        stop: function() {
+        resize: function(event, ui) {
             var block = jQuery(this);
             self.updateDataAndPosition(block, startDate);
             self.saveRecord(block.data("record"));
-        }
+
+            // Ensure the text stays to the right during resize
+            var blockText = block.data("text-element");
+            if (blockText) {
+                var taskbarOffset = block.offset();
+                var taskbarWidth = block.outerWidth();
+                blockText.css({
+                    left: taskbarOffset.left + taskbarWidth + "px",
+                    top: taskbarOffset.top + block.outerHeight() / 2 - blockText.outerHeight() / 2 + "px",
+                });
+            }
+        },
+        stop: function(event, ui) {
+            var block = jQuery(this);
+            self.updateDataAndPosition(block, startDate);
+            self.saveRecord(block.data("record"));
+        },
     });
 };
+
 
 // Setup jquery-ui drag and drop
 Gantt.prototype.listenForBlockMove = function(startDate) {
