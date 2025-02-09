@@ -9,6 +9,15 @@
     <?= $this->subtask->renderAssigneeField($users_list, $values, $errors) ?>
     <?= $this->subtask->renderTimeEstimatedField($values, $errors) ?>
     <?= $this->subtask->renderTimeSpentField($values, $errors) ?>
+    <div class="form-group">
+        <?= $this->form->label(t('Start Date'), 'start_date') ?>
+        <?= $this->form->text('start_date', $values, $errors, array('type' => 'date')) ?>
+    </div>
+
+    <div class="form-group">
+        <?= $this->form->label(t('Due Date'), 'due_date') ?>
+        <?= $this->form->text('due_date', $values, $errors, array('type' => 'date')) ?>
+    </div>
 
     <?= $this->hook->render('template:subtask:form:edit', array('values' => $values, 'errors' => $errors)) ?>
 

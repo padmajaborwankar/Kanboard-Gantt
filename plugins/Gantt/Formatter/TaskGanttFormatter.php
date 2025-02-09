@@ -59,15 +59,16 @@ class TaskGanttFormatter extends BaseFormatter implements FormatterInterface
             'id' => $task['id'],
             'title' => $task['title'],
             'start' => array(
-                (int) date('Y', $start),
-                (int) date('n', $start),
-                (int) date('j', $start),
-            ),
-            'end' => array(
-                (int) date('Y', $end),
-                (int) date('n', $end),
-                (int) date('j', $end),
-            ),
+    (int) date('Y', is_numeric($start) ? $start : strtotime($start)),
+    (int) date('n', is_numeric($start) ? $start : strtotime($start)),
+    (int) date('j', is_numeric($start) ? $start : strtotime($start)),
+),
+'end' => array(
+    (int) date('Y', is_numeric($end) ? $end : strtotime($end)),
+    (int) date('n', is_numeric($end) ? $end : strtotime($end)),
+    (int) date('j', is_numeric($end) ? $end : strtotime($end)),
+),
+
             'column_title' => $task['column_name'],
             'assignee' => $task['assignee_name'] ?: $task['assignee_username'],
             'progress' => $this->taskModel->getProgress($task, $this->columns[$task['project_id']]).'%',

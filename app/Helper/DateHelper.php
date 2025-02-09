@@ -54,6 +54,10 @@ class DateHelper extends Base
      */
     public function datetime($value)
     {
+        if (!ctype_digit((string) $value)) {
+            $value = strtotime($value); // Convert string date to timestamp
+        }
+    
         return date($this->dateParser->getUserDateTimeFormat(), $value);
     }
 

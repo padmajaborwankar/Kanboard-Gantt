@@ -147,6 +147,18 @@ class SubtaskHelper extends Base
         return $html;
     }
 
+    public function renderStartDateField(array $values, array $errors = array(), array $attributes = array())
+    {
+        $attributes = array_merge(array('tabindex="11"'), $attributes);
+        return $this->helper->form->datetime(t('Start Date'), 'start_date', $values, $errors, $attributes);
+    }
+
+    public function renderDueDateField(array $values, array $errors = array(), array $attributes = array())
+    {
+        $attributes = array_merge(array('tabindex="10"'), $attributes);
+        return $this->helper->form->datetime(t('Due Date'), 'due_date', $values, $errors, $attributes);
+    }
+
     public function renderTimeSpentField(array $values, array $errors = array(), array $attributes = array())
     {
         $attributes = array_merge(array('tabindex="4"'), $attributes);

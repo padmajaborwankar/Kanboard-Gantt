@@ -82,7 +82,9 @@ class SubtaskModel extends Base
             ->columns(
                 self::TABLE.'.*',
                 UserModel::TABLE.'.username',
-                UserModel::TABLE.'.name'
+                UserModel::TABLE.'.name',
+                self::TABLE.'start_date',
+                self::TABLE.'due_date'
             )
             ->subquery($this->subtaskTimeTrackingModel->getTimerQuery($this->userSession->getId()), 'timer_start_date')
             ->join(UserModel::TABLE, 'id', 'user_id')
@@ -213,6 +215,10 @@ class SubtaskModel extends Base
     public function create(array $values)
     {
         $this->prepareCreation($values);
+        
+        $values['start_date'] = isset($values['start_date']) ? $values['start_date'] : null;
+        $values['due_date'] = isset($values['due_date']) ? $values['due_date'] : null;
+
         $subtaskId = $this->db->table(self::TABLE)->persist($values);
 
         if ($subtaskId !== false) {
@@ -237,6 +243,10 @@ class SubtaskModel extends Base
     public function update(array $values, $fireEvent = true)
     {
         $this->prepare($values);
+
+        $values['start_date'] = isset($values['start_date']) ? $values['start_date'] : null;
+        $values['due_date'] = isset($values['due_date']) ? $values['due_date'] : null;
+
         $updates = $values;
         unset($updates['id']);
         $result = $this->db->table(self::TABLE)->eq('id', $values['id'])->save($updates);
@@ -289,7 +299,7 @@ class SubtaskModel extends Base
         return $this->db->transaction(function (Database $db) use ($srcTaskId, $dstTaskId) {
 
             $subtasks = $db->table(SubtaskModel::TABLE)
-                ->columns('title', 'time_estimated', 'position','user_id')
+                ->columns('title', 'time_estimated', 'position','user_id', 'start_date', 'due_date')
                 ->eq('task_id', $srcTaskId)
                 ->asc('position')
                 ->findAll();
@@ -314,6 +324,8 @@ class SubtaskModel extends Base
     {
         $this->helper->model->removeFields($values, array('another_subtask'));
         $this->helper->model->resetFields($values, array('time_estimated', 'time_spent'));
+        $values['start_date'] = isset($values['start_date']) ? $values['start_date'] : null;
+        $values['due_date'] = isset($values['due_date']) ? $values['due_date'] : null;
         $this->hook->reference('model:subtask:modification:prepare', $values);
     }
 
@@ -332,6 +344,8 @@ class SubtaskModel extends Base
         $values['time_estimated'] = isset($values['time_estimated']) ? $values['time_estimated'] : 0;
         $values['time_spent'] = isset($values['time_spent']) ? $values['time_spent'] : 0;
         $values['user_id'] = isset($values['user_id']) ? $values['user_id'] : 0;
+        $values['start_date'] = isset($values['start_date']) ? $values['start_date'] : null;
+        $values['due_date'] = isset($values['due_date']) ? $values['due_date'] : null;
         $this->hook->reference('model:subtask:creation:prepare', $values);
     }
 }

@@ -9,6 +9,8 @@
             <th class="column-10"><?= t('Assignee') ?></th>
             <?= $this->hook->render('template:subtask:table:header:before-timetracking') ?>
             <th class="column-30"><?= t('Time tracking') ?></th>
+            <th><?= t('Start Date') ?></th>
+            <th><?= t('Due Date') ?></th>
         </tr>
     </thead>
     <tbody>
@@ -39,6 +41,16 @@
                     'task'    => $task,
                     'subtask' => $subtask,
                 )) ?>
+            </td>
+            <td>
+                <?php if (!empty($subtask['start_date'])): ?>
+                    <?= $this->dt->date($subtask['start_date']) ?>
+                <?php endif ?>
+            </td>
+            <td>
+                <?php if (!empty($subtask['due_date'])): ?>
+                    <?= $this->dt->date($subtask['due_date']) ?>
+                <?php endif ?>
             </td>
         </tr>
         <?php endforeach ?>

@@ -68,11 +68,25 @@
                 <?php endif ?>
                 ">
                 <i class="fa fa-calendar"></i>
-                <?php if (date('Hi', $task['date_due']) === '0000' ): ?>
-                    <?= $this->dt->date($task['date_due']) ?>
-                <?php else: ?>
-                    <?= $this->dt->datetime($task['date_due']) ?>
-                <?php endif ?>
+                <?php if (! empty($task['date_due'])): ?>
+    <span class="task-date
+        <?php if (time() > strtotime($task['date_due'])): ?>
+             task-date-overdue
+        <?php elseif (date('Y-m-d') == date('Y-m-d', strtotime($task['date_due']))): ?>
+             task-date-today
+        <?php endif ?>
+        ">
+        <i class="fa fa-calendar"></i>
+        <?php 
+        $timestamp = strtotime($task['date_due']); // Convert date string to timestamp
+        if ($timestamp !== false && date('Hi', $timestamp) === '0000' ): ?>
+            <?= $this->dt->date($timestamp) ?>
+        <?php else: ?>
+            <?= $this->dt->datetime($timestamp) ?>
+        <?php endif ?>
+    </span>
+<?php endif ?>
+
             </span>
         <?php endif ?>
     </div>
