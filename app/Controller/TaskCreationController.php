@@ -39,7 +39,20 @@ class TaskCreationController extends BaseController
             'swimlanes_list' => $swimlanesList,
         )));
     }
-
+    public function create(array $values = [], array $errors = [])
+    {
+        $project_id = $this->request->getIntegerParam('project_id');
+        
+        $sprints = $this->sprintModel->getAllByProject($project_id);
+    
+        $this->response->html($this->template->render('task_creation/show', [
+            'project' => $this->projectModel->getById($project_id),
+            'sprints' => $sprints,
+            'values' => $values,
+            'errors' => $errors,
+        ]));
+    }
+        
     /**
      * Validate and save a new task
      *
@@ -51,6 +64,11 @@ class TaskCreationController extends BaseController
         $values = $this->request->getValues();
         $values['project_id'] = $project['id'];
 
+        if (!empty($values['new_sprint_checkbox']) && !empty($values['new_sprint_name'])) {
+            $sprint_id = $this->sprintModel->create(['name' => $values['new_sprint_name'], 'project_id' => $project_id]);
+            $values['sprint_id'] = $sprint_id;
+        }
+        
         list($valid, $errors) = $this->taskValidator->validateCreation($values);
 
         if (! $valid) {

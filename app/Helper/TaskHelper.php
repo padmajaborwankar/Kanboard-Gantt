@@ -114,6 +114,21 @@ class TaskHelper extends Base
         $html = $this->helper->form->colorSelect('color_id', $values);
         return $html;
     }
+    public function renderSprintField($projectId, array $values = array(), array $errors = array(), array $attributes = array())
+{
+    // Fetch the list of sprints for the project
+    $sprints = $this->sprintModel->getAllSprintsForProject($projectId);
+
+    $html = $this->helper->form->label(t('Sprint'), 'sprint_id');
+
+    if (!empty($sprints)) {
+        $html .= $this->helper->form->select('sprint_id', $sprints, $values, $errors, $attributes);
+    } else {
+        $html .= '<select name="sprint_id" id="form-sprint_id" class="form-control"><option>' . t('No sprints available') . '</option></select>';
+    }
+
+    return $html;
+}
 
     public function renderAssigneeField(array $users, array $values, array $errors = array(), array $attributes = array())
     {
