@@ -71,6 +71,7 @@ class ClassProvider implements ServiceProviderInterface
             'SubtaskTaskConversionModel',
             'SubtaskTimeTrackingModel',
             'SwimlaneModel',
+            'SprintModel',
             'TagDuplicationModel',
             'TagModel',
             'TaskModel',

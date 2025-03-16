@@ -129,6 +129,7 @@ use Pimple\Container;
  * @property \Kanboard\Model\SubtaskTaskConversionModel              $subtaskTaskConversionModel
  * @property \Kanboard\Model\SubtaskTimeTrackingModel                $subtaskTimeTrackingModel
  * @property \Kanboard\Model\SwimlaneModel                           $swimlaneModel
+ * @property \Kanboard\Model\SprintModel                             $sprintModel
  * @property \Kanboard\Model\TagDuplicationModel                     $tagDuplicationModel
  * @property \Kanboard\Model\TagModel                                $tagModel
  * @property \Kanboard\Model\TaskModel                               $taskModel

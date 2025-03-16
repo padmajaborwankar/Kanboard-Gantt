@@ -51,7 +51,7 @@ class TaskHelper extends Base
                 'autofocus',
                 'required',
                 'tabindex="1"',
-                'placeholder="'.t('Title').'"'
+                'placeholder="' . t('Title') . '"'
             )
         );
 
@@ -69,12 +69,12 @@ class TaskHelper extends Base
 
         if (! empty($templates)) {
             $html = '<div class="dropdown dropdown-smaller">';
-            $html .= '<a href="#" class="dropdown-menu dropdown-menu-link-icon"><i class="fa fa-floppy-o fa-fw" aria-hidden="true"></i>'.t('Template for the task description').' <i class="fa fa-caret-down" aria-hidden="true"></i></a>';
+            $html .= '<a href="#" class="dropdown-menu dropdown-menu-link-icon"><i class="fa fa-floppy-o fa-fw" aria-hidden="true"></i>' . t('Template for the task description') . ' <i class="fa fa-caret-down" aria-hidden="true"></i></a>';
             $html .= '<ul>';
 
             foreach ($templates as  $template) {
                 $html .= '<li>';
-                $html .= '<a href="#" data-template-target="textarea[name=description]" data-template="'.$this->helper->text->e($template['description']).'" class="js-template">';
+                $html .= '<a href="#" data-template-target="textarea[name=description]" data-template="' . $this->helper->text->e($template['description']) . '" class="js-template">';
                 $html .= $this->helper->text->e($template['title']);
                 $html .= '</a>';
                 $html .= '</li>';
@@ -114,21 +114,58 @@ class TaskHelper extends Base
         $html = $this->helper->form->colorSelect('color_id', $values);
         return $html;
     }
+
     public function renderSprintField($projectId, array $values = array(), array $errors = array(), array $attributes = array())
-{
-    // Fetch the list of sprints for the project
-    $sprints = $this->sprintModel->getAllSprintsForProject($projectId);
+    {
+        $html = $this->helper->form->label(t('Existing Sprint'), 'sprint_id');
 
-    $html = $this->helper->form->label(t('Sprint'), 'sprint_id');
+        // Get sprints from database using sprintModel directly
+        $options = array();
+        $sprints = $this->sprintModel->getAllByProject($projectId);
+        if (!empty($sprints)) {
+            foreach ($sprints as $sprint) {
+                $options[$sprint['id']] = $this->helper->text->e($sprint['name']);
+            }
+        }
 
-    if (!empty($sprints)) {
-        $html .= $this->helper->form->select('sprint_id', $sprints, $values, $errors, $attributes);
-    } else {
-        $html .= '<select name="sprint_id" id="form-sprint_id" class="form-control"><option>' . t('No sprints available') . '</option></select>';
+        // Render sprint dropdown
+        $html .= $this->helper->form->select('sprint_id', $options, $values, $errors, $attributes);
+
+        // Add new sprint checkbox and input field
+        $html .= '<div class="new-sprint-section">';
+        $html .= $this->helper->form->checkbox(
+            'new_sprint_checkbox',
+            t('New Sprint'),
+            1,
+            false,
+            '',
+            array('id' => 'form-new_sprint_checkbox')
+        );
+        $html .= $this->helper->form->text(
+            'new_sprint_name',
+            $values,
+            $errors,
+            array(
+                'id' => 'form-new_sprint_name',
+                'disabled' => 'disabled',
+                'placeholder' => t('Enter sprint name (e.g., Sprint 1, Q1 Sprint)')
+            )
+        );
+        $html .= '</div>';
+
+        // Add JavaScript to handle checkbox toggle
+        $html .= <<<'EOT'
+        <script type="text/javascript">
+        $(document).ready(function() {
+            $("#form-new_sprint_checkbox").on("change", function() {
+                $("#form-new_sprint_name").prop("disabled", !$(this).prop("checked"));
+            });
+        });
+        </script>
+EOT;
+
+        return $html;
     }
-
-    return $html;
-}
 
     public function renderAssigneeField(array $users, array $values, array $errors = array(), array $attributes = array())
     {
@@ -142,7 +179,7 @@ class TaskHelper extends Base
         $html .= $this->helper->form->select('owner_id', $users, $values, $errors, $attributes);
         $html .= '&nbsp;';
         $html .= '<small>';
-        $html .= '<a href="#" class="assign-me" data-target-id="form-owner_id" data-current-id="'.$this->userSession->getId().'" title="'.t('Assign to me').'" aria-label="'.t('Assign to me').'">'.t('Me').'</a>';
+        $html .= '<a href="#" class="assign-me" data-target-id="form-owner_id" data-current-id="' . $this->userSession->getId() . '" title="' . t('Assign to me') . '" aria-label="' . t('Assign to me') . '">' . t('Me') . '</a>';
         $html .= '</small>';
 
         return $html;
@@ -222,7 +259,7 @@ class TaskHelper extends Base
 
         $html = $this->helper->form->label(t('Original estimate'), 'time_estimated');
         $html .= $this->helper->form->numeric('time_estimated', $values, $errors, $attributes);
-        $html .= ' '.t('hours');
+        $html .= ' ' . t('hours');
 
         return $html;
     }
@@ -233,7 +270,7 @@ class TaskHelper extends Base
 
         $html = $this->helper->form->label(t('Time spent'), 'time_spent');
         $html .= $this->helper->form->numeric('time_spent', $values, $errors, $attributes);
-        $html .= ' '.t('hours');
+        $html .= ' ' . t('hours');
 
         return $html;
     }
@@ -252,9 +289,9 @@ class TaskHelper extends Base
 
     public function renderPriority($priority)
     {
-        $html = '<span class="task-priority" title="'.t('Task priority').'">';
-        $html .= '<span class="ui-helper-hidden-accessible">'.t('Task priority').' </span>';
-        $html .= $this->helper->text->e($priority >= 0 ? 'P'.$priority : '-P'.abs($priority));
+        $html = '<span class="task-priority" title="' . t('Task priority') . '">';
+        $html .= '<span class="ui-helper-hidden-accessible">' . t('Task priority') . ' </span>';
+        $html .= $this->helper->text->e($priority >= 0 ? 'P' . $priority : '-P' . abs($priority));
         $html .= '</span>';
 
         return $html;
@@ -294,7 +331,8 @@ class TaskHelper extends Base
                 'plus',
                 t('Add a new task'),
                 'TaskCreationController',
-                'show', array(
+                'show',
+                array(
                     'project_id'  => $column['project_id'],
                     'column_id'   => $column['id'],
                     'swimlane_id' => $swimlane['id'],
@@ -308,14 +346,15 @@ class TaskHelper extends Base
                 'plus',
                 t('Add a new Kanboard task'),
                 'TaskCreationController',
-                'show', array(
+                'show',
+                array(
                     'project_id'  => $column['project_id'],
                     'column_id'   => $column['id'],
                     'swimlane_id' => $swimlane['id'],
                 )
             );
 
-            $html .= '<li>'.$link.'</li>';
+            $html .= '<li>' . $link . '</li>';
 
             foreach ($providers as $provider) {
                 $link = $this->helper->url->link(
@@ -327,7 +366,7 @@ class TaskHelper extends Base
                     'js-modal-large'
                 );
 
-                $html .= '<li>'.$provider->getIcon().' '.$link.'</li>';
+                $html .= '<li>' . $provider->getIcon() . ' ' . $link . '</li>';
             }
 
             $html .= '</ul></div>';

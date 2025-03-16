@@ -15,30 +15,7 @@
         </div>
 
         <div class="task-form-secondary-column">
-    <label for="sprint_id"><?= t('Existing Sprint') ?></label>
-    <select id="sprint_id" name="sprint_id">
-        <?php foreach ($sprints as $sprint): ?>
-            <option value="<?= $sprint['id'] ?>"><?= $this->text->e($sprint['name']) ?></option>
-        <?php endforeach; ?>
-    </select>
-
-    <br>
-
-    <label>
-        <input type="checkbox" id="new_sprint_checkbox" name="new_sprint_checkbox">
-        <?= t('New') ?>
-    </label>
-    <input type="text" id="new_sprint_name" name="new_sprint_name" placeholder="<?= t('New Sprint Name') ?>" disabled>
-</div>
-
-<script>
-    document.getElementById('new_sprint_checkbox').addEventListener('change', function () {
-        document.getElementById('new_sprint_name').disabled = !this.checked;
-    });
-</script>
-
-
-        <div class="task-form-secondary-column">
+            <?= $this->task->renderSprintField($project['id'], $values, $errors) ?>
             <?= $this->task->renderColorField($values) ?>
             <?= $this->task->renderAssigneeField($users_list, $values, $errors) ?>
             <?= $this->task->renderCategoryField($categories_list, $values, $errors) ?>
