@@ -78,3 +78,35 @@ function get_last_insert_id(PDO $pdo)
     return $pdo->lastInsertId();
 }
 
+class Migration
+{
+    private $pdo;
+
+    public function __construct(PDO $pdo)
+    {
+        $this->pdo = $pdo;
+    }
+
+    public function up()
+    {
+        // Create sprints table
+        $this->pdo->exec('CREATE TABLE IF NOT EXISTS sprints (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name VARCHAR(255) NOT NULL,
+            project_id INTEGER NOT NULL,
+            start_date INTEGER NOT NULL,
+            end_date INTEGER NOT NULL,
+            FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        )');
+
+        // Add sprint_id to tasks table
+        $this->pdo->exec('ALTER TABLE tasks ADD COLUMN sprint_id INTEGER DEFAULT NULL');
+    }
+
+    public function down()
+    {
+        $this->pdo->exec('ALTER TABLE tasks DROP COLUMN sprint_id');
+        $this->pdo->exec('DROP TABLE IF EXISTS sprints');
+    }
+}
+

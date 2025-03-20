@@ -116,57 +116,39 @@ class TaskHelper extends Base
     }
 
     public function renderSprintField($projectId, array $values = array(), array $errors = array(), array $attributes = array())
-    {
-        $html = $this->helper->form->label(t('Existing Sprint'), 'sprint_id');
-
-        // Get sprints from database using sprintModel directly
-        $options = array();
-        $sprints = $this->sprintModel->getAllByProject($projectId);
-        if (!empty($sprints)) {
-            foreach ($sprints as $sprint) {
-                $options[$sprint['id']] = $this->helper->text->e($sprint['name']);
-            }
+{
+    $html = $this->helper->form->label(t('Existing Sprint'), 'sprint_id');
+    
+    // Get sprints from database
+    $options = array();
+    $sprints = $this->sprintModel->getAllByProject($projectId);
+    if (!empty($sprints)) {
+        foreach ($sprints as $sprint) {
+            $options[$sprint['id']] = $this->helper->text->e($sprint['name']);
         }
-
-        // Render sprint dropdown
-        $html .= $this->helper->form->select('sprint_id', $options, $values, $errors, $attributes);
-
-        // Add new sprint checkbox and input field
-        $html .= '<div class="new-sprint-section">';
-        $html .= $this->helper->form->checkbox(
-            'new_sprint_checkbox',
-            t('New Sprint'),
-            1,
-            false,
-            '',
-            array('id' => 'form-new_sprint_checkbox')
-        );
-        $html .= $this->helper->form->text(
-            'new_sprint_name',
-            $values,
-            $errors,
-            array(
-                'id' => 'form-new_sprint_name',
-                'disabled' => 'disabled',
-                'placeholder' => t('Enter sprint name (e.g., Sprint 1, Q1 Sprint)')
-            )
-        );
-        $html .= '</div>';
-
-        // Add JavaScript to handle checkbox toggle
-        $html .= <<<'EOT'
-        <script type="text/javascript">
-        $(document).ready(function() {
-            $("#form-new_sprint_checkbox").on("change", function() {
-                $("#form-new_sprint_name").prop("disabled", !$(this).prop("checked"));
-            });
-        });
-        </script>
-EOT;
-
-        return $html;
+    } else {
+        $options[0] = t('None');
     }
-
+    
+    // Render sprint dropdown
+    $html .= $this->helper->form->select('sprint_id', $options, $values, $errors, $attributes);
+    
+    // Always show the "New Sprint" field, but make it clear when to use it
+    $html .= '<div class="new-sprint-section" style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px;">';
+    $html .= $this->helper->form->label(t('OR Create New Sprint'), 'new_sprint_name');
+    $html .= $this->helper->form->text(
+        'new_sprint_name',
+        $values,
+        $errors,
+        array(
+            'placeholder' => t('Enter sprint name (e.g., Sprint 1, Q1 Sprint)')
+        )
+    );
+    $html .= '<p><small>' . t('If you enter a name here, a new sprint will be created.') . '</small></p>';
+    $html .= '</div>';
+    
+    return $html;
+}
     public function renderAssigneeField(array $users, array $values, array $errors = array(), array $attributes = array())
     {
         if (isset($values['project_id']) && ! $this->helper->projectRole->canChangeAssignee($values)) {

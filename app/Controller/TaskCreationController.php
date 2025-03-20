@@ -63,14 +63,20 @@ class TaskCreationController extends BaseController
         $project = $this->getProject();
         $values = $this->request->getValues();
         $values['project_id'] = $project['id'];
-
-        if (!empty($values['new_sprint_checkbox']) && !empty($values['new_sprint_name'])) {
-            $sprint_id = $this->sprintModel->create(['name' => $values['new_sprint_name'], 'project_id' => $project_id]);
+    
+        // Handle new sprint creation
+        if (!empty($values['new_sprint_name'])) {
+            $sprint_id = $this->sprintModel->create([
+                'name' => $values['new_sprint_name'],
+                'project_id' => $project['id'],
+                'start_date' => time(),
+                'end_date' => time() + (30 * 24 * 60 * 60) // 30 days from now
+            ]);
             $values['sprint_id'] = $sprint_id;
         }
-        
+    
         list($valid, $errors) = $this->taskValidator->validateCreation($values);
-
+    
         if (! $valid) {
             $this->flash->failure(t('Unable to create your task.'));
             $this->show($values, $errors);
@@ -79,7 +85,7 @@ class TaskCreationController extends BaseController
             $this->response->redirect($this->helper->url->to('BoardViewController', 'show', array('project_id' => $project['id'])), true);
         } else {
             $task_id = $this->taskCreationModel->create($values);
-
+    
             if ($task_id > 0) {
                 $this->flash->success(t('Task created successfully.'));
                 $this->afterSave($project, $values, $task_id);
@@ -89,7 +95,6 @@ class TaskCreationController extends BaseController
             }
         }
     }
-
     /**
      * Duplicate created tasks to multiple projects
      *
