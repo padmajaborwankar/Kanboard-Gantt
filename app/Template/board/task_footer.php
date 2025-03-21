@@ -93,7 +93,6 @@
                     foreach ($files as $file) {
                         $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                         if (in_array($file_extension, $image_extensions)) {
-                            print_r($file['name']);
                             $lastImage = $file;
                             break;
                         }
@@ -103,7 +102,7 @@
                 if ($lastImage): ?>
                 <div class="task-board-icons-row" style="display: flex; align-items: center;">
                     <div class="task-board-image-preview" style="margin-right: 10px;">
-                        <img src="<?= $this->url->href('FileViewerController', 'thumbnail', array('file_id' => $lastImage['id'], 'task_id' => $task['id'])) ?>"
+                    <img src="<?= $this->url->href('FileViewerController', 'thumbnail', array('file_id' => $lastImage['id'], 'task_id' => $task['id'], 't' => time())) ?>"
                             alt="<?= $this->text->e($lastImage['name']) ?>"
                             title="<?= $this->text->e($lastImage['name']) ?>"
                             style="max-width: 80px; max-height: 60px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
