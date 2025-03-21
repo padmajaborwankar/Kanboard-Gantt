@@ -42,9 +42,9 @@ class TaskCreationController extends BaseController
     public function create(array $values = [], array $errors = [])
     {
         $project_id = $this->request->getIntegerParam('project_id');
-        
+
         $sprints = $this->sprintModel->getAllByProject($project_id);
-    
+
         $this->response->html($this->template->render('task_creation/show', [
             'project' => $this->projectModel->getById($project_id),
             'sprints' => $sprints,
@@ -52,7 +52,7 @@ class TaskCreationController extends BaseController
             'errors' => $errors,
         ]));
     }
-        
+
     /**
      * Validate and save a new task
      *
@@ -63,20 +63,40 @@ class TaskCreationController extends BaseController
         $project = $this->getProject();
         $values = $this->request->getValues();
         $values['project_id'] = $project['id'];
-    
-        // Handle new sprint creation
+
+        // Debug values in a formatted way
+        error_log('Task Creation Values: ' . json_encode($values, JSON_PRETTY_PRINT));
+        print_r($values);
+
+        // Handle sprint assignment
         if (!empty($values['new_sprint_name'])) {
-            $sprint_id = $this->sprintModel->create([
+            // Create new sprint
+            $sprintData = [
                 'name' => $values['new_sprint_name'],
                 'project_id' => $project['id'],
                 'start_date' => time(),
                 'end_date' => time() + (30 * 24 * 60 * 60) // 30 days from now
-            ]);
-            $values['sprint_id'] = $sprint_id;
+            ];
+
+            // Create sprint and get the ID
+            $sprint_id = $this->sprintModel->create($sprintData);
+
+            if ($sprint_id) {
+                $values['sprint_id'] = $sprint_id; // Assign the new sprint ID to the task
+                error_log('Created new sprint with ID: ' . $sprint_id);
+            } else {
+                $this->flash->failure(t('Unable to create new sprint.'));
+                $this->show($values, ['new_sprint_name' => ['Unable to create sprint']]);
+                return;
+            }
         }
-    
+        // else use existing sprint_id from the values array
+
+        // Remove temporary sprint-related fields that aren't in the tasks table
+        unset($values['new_sprint_name']);
+
         list($valid, $errors) = $this->taskValidator->validateCreation($values);
-    
+
         if (! $valid) {
             $this->flash->failure(t('Unable to create your task.'));
             $this->show($values, $errors);
@@ -85,7 +105,7 @@ class TaskCreationController extends BaseController
             $this->response->redirect($this->helper->url->to('BoardViewController', 'show', array('project_id' => $project['id'])), true);
         } else {
             $task_id = $this->taskCreationModel->create($values);
-    
+
             if ($task_id > 0) {
                 $this->flash->success(t('Task created successfully.'));
                 $this->afterSave($project, $values, $task_id);

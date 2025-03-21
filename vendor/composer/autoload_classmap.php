@@ -6,6 +6,8 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'App\\Schema\\Sprint' => $baseDir . '/app/Schema/Sprint.php',
+    'App\\Schema\\Task' => $baseDir . '/app/Schema/Task.php',
     'Attribute' => $vendorDir . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
     'Base32\\Base32' => $vendorDir . '/christian-riesen/base32/src/Base32.php',
     'Base32\\Base32Hex' => $vendorDir . '/christian-riesen/base32/src/Base32Hex.php',
@@ -618,7 +620,7 @@ return array(
     'Kanboard\\Model\\ProjectUserRoleModel' => $baseDir . '/app/Model/ProjectUserRoleModel.php',
     'Kanboard\\Model\\RememberMeSessionModel' => $baseDir . '/app/Model/RememberMeSessionModel.php',
     'Kanboard\\Model\\SettingModel' => $baseDir . '/app/Model/SettingModel.php',
-    'Kanboard\\Model\\SprintModel' => $baseDir . '/app/Model/sprintmodel.php',
+    'Kanboard\\Model\\SprintModel' => $baseDir . '/app/Model/SprintModel.php',
     'Kanboard\\Model\\SubtaskModel' => $baseDir . '/app/Model/SubtaskModel.php',
     'Kanboard\\Model\\SubtaskPositionModel' => $baseDir . '/app/Model/SubtaskPositionModel.php',
     'Kanboard\\Model\\SubtaskStatusModel' => $baseDir . '/app/Model/SubtaskStatusModel.php',
@@ -1502,6 +1504,7 @@ return array(
     'Psr\\Log\\Test\\DummyTest' => $vendorDir . '/psr/log/Psr/Log/Test/DummyTest.php',
     'Psr\\Log\\Test\\LoggerInterfaceTest' => $vendorDir . '/psr/log/Psr/Log/Test/LoggerInterfaceTest.php',
     'Psr\\Log\\Test\\TestLogger' => $vendorDir . '/psr/log/Psr/Log/Test/TestLogger.php',
+    'Schema\\Migration' => $baseDir . '/app/Schema/Migration.php',
     'SebastianBergmann\\CliParser\\AmbiguousOptionException' => $vendorDir . '/sebastian/cli-parser/src/exceptions/AmbiguousOptionException.php',
     'SebastianBergmann\\CliParser\\Exception' => $vendorDir . '/sebastian/cli-parser/src/exceptions/Exception.php',
     'SebastianBergmann\\CliParser\\OptionDoesNotAllowArgumentException' => $vendorDir . '/sebastian/cli-parser/src/exceptions/OptionDoesNotAllowArgumentException.php',
