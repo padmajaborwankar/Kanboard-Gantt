@@ -76,42 +76,7 @@
             </span>
         <?php endif ?>
     </div>
-    <div class="task-board-icons-row">
-    <div class="task-board-icons-row" style="display: flex; align-items: center; justify-content: space-between;">
-        <div>
-        <?php if (!empty($task['nb_files'])): ?>
-            <?php
-                $files = $this->app->taskFileModel->getAll($task['id']);
-                $image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                $lastImage = null;
-
-                if (!empty($files) && is_array($files)) {
-                    usort($files, function($a, $b) {
-                        return $b['date'] <=> $a['date'];
-                    });
-
-                    foreach ($files as $file) {
-                        $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                        if (in_array($file_extension, $image_extensions)) {
-                            $lastImage = $file;
-                            break;
-                        }
-                    }
-                }
-
-                if ($lastImage): ?>
-                <div class="task-board-icons-row" style="display: flex; align-items: center;">
-                    <div class="task-board-image-preview" style="margin-right: 10px;">
-                    <img src="<?= $this->url->href('FileViewerController', 'thumbnail', array('file_id' => $lastImage['id'], 'task_id' => $task['id'], 't' => time())) ?>"
-                            alt="<?= $this->text->e($lastImage['name']) ?>"
-                            title="<?= $this->text->e($lastImage['name']) ?>"
-                            style="max-width: 80px; max-height: 60px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    </div>
-                </div>
-                <?php endif; ?>
-        <?php endif ?>
-        </div>
-        <div>
+    <div>
         <?php if ($task['recurrence_status'] == \Kanboard\Model\TaskModel::RECURRING_STATUS_PENDING): ?>
             <?= $this->app->tooltipLink('<i class="fa fa-refresh fa-rotate-90"></i>', $this->url->href('BoardTooltipController', 'recurrence', array('task_id' => $task['id']))) ?>
         <?php endif ?>
@@ -168,6 +133,35 @@
         <?= $this->task->renderPriority($task['priority']) ?>
 
         <?= $this->hook->render('template:board:task:icons', array('task' => $task)) ?>
+    </div>
+    <div class="task-board-icons-row">
+        <?php if (!empty($task['nb_files'])): ?>
+            <?php
+                $files = $this->app->taskFileModel->getAll($task['id']);
+                $lastImage = null;
+
+                if (!empty($files) && is_array($files)) {
+                    usort($files, function($a, $b) {
+                        return $b['date'] <=> $a['date'];
+                    });
+
+                    foreach ($files as $file) {
+                        if (!empty($file['is_image']) && $file['is_image'] == 1) {
+                            $lastImage = $file;
+                            break;
+                        }
+                    }
+                }
+
+                if ($lastImage): ?>
+                <div class="task-board-image-preview">
+                    <img src="<?= $this->url->href('FileViewerController', 'image', array('file_id' => $lastImage['id'], 'task_id' => $task['id'], 'date' => $lastImage['date'])) ?>"
+                        alt="<?= $this->text->e($lastImage['name']) ?>"
+                        title="<?= $this->text->e($lastImage['name']) ?>"
+                        style="width: 100%; height: auto;">
+                </div>
+            <?php endif; ?>
+        <?php endif ?>
     </div>
 </div>
 
