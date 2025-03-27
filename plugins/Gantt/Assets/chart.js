@@ -29,14 +29,93 @@ Gantt.prototype.saveRecord = function(record) {
 
 // Build the Gantt chart
 Gantt.prototype.show = function() {
-    this.data = this.prepareData($(this.options.container).data('records'));
+    const sprintContainer = document.querySelector(this.options.container);
+    const rawTasks = $(sprintContainer).data('records');
+    const rawSprints = sprintContainer.getAttribute('data-sprints');
 
-    var minDays = Math.floor((this.options.slideWidth / this.options.cellWidth) + 5);
-    var range = this.getDateRange(minDays);
-    var startDate = range[0];
-    var endDate = range[1];
-    var container = $(this.options.container);
-    var chart = jQuery("<div>", { "class": "ganttview" });
+    let tasks = Array.isArray(rawTasks) ? rawTasks : [];
+    let sprints = [];
+
+    try {
+        sprints = rawSprints ? JSON.parse(rawSprints) : [];
+    } catch (e) {
+        console.warn("❌ Could not parse sprints JSON:", e);
+    }
+
+    console.log("📦 SPRINTS:", sprints);
+    console.log("🧩 TASKS:", tasks);
+
+    // ✅ Group tasks by sprint_id
+    const tasksBySprint = {};
+    const addedTaskIds = new Set(); // ✅ To avoid duplicates
+
+    tasks.forEach(t => {
+        if (!t.sprint_id) return; // Skip if no sprint
+        if (!tasksBySprint[t.sprint_id]) {
+            tasksBySprint[t.sprint_id] = [];
+        }
+        tasksBySprint[t.sprint_id].push(t);
+    });
+
+    // ✅ Start merging sprints + their tasks
+    const mergedData = [];
+
+    sprints.forEach(sprint => {
+        mergedData.push({
+            type: 'sprint',
+            id: 'sprint-' + sprint.id,
+            title: '📦 ' + sprint.name,
+            start: new Date(sprint.start_date * 1000),
+            end: new Date(sprint.end_date * 1000),
+            color: {
+                background: '#ffeeba',
+                border: '#f0ad4e',
+            },
+            assignee: '',
+            progress: '0%',
+            not_defined: false,
+        });
+
+        (tasksBySprint[sprint.id] || []).forEach(task => {
+            if (
+                Array.isArray(task.start) && task.start.length === 3 &&
+                Array.isArray(task.end) && task.end.length === 3
+            ) {
+                task.start = new Date(task.start[0], task.start[1] - 1, task.start[2]);
+                task.end = new Date(task.end[0], task.end[1] - 1, task.end[2]);
+                task.type = 'task';
+                task.title = '↳ ' + task.title;
+                mergedData.push(task);
+                addedTaskIds.add(task.id);
+            }
+        });
+    });
+
+    // ✅ Add any orphan tasks not linked to sprints
+    tasks.forEach(task => {
+        if (addedTaskIds.has(task.id)) return;
+
+        if (
+            Array.isArray(task.start) && task.start.length === 3 &&
+            Array.isArray(task.end) && task.end.length === 3
+        ) {
+            task.start = new Date(task.start[0], task.start[1] - 1, task.start[2]);
+            task.end = new Date(task.end[0], task.end[1] - 1, task.end[2]);
+            task.type = 'task';
+            task.title = '↳ ' + task.title;
+            mergedData.push(task);
+        }
+    });
+
+    // ✅ Continue with rendering
+    this.data = mergedData;
+
+    const minDays = Math.floor((this.options.slideWidth / this.options.cellWidth) + 5);
+    const range = this.getDateRange(minDays);
+    const startDate = range[0];
+    const endDate = range[1];
+    const container = $(this.options.container);
+    const chart = jQuery("<div>", { "class": "ganttview" });
 
     chart.append(this.renderVerticalHeader());
     chart.append(this.renderSlider(startDate, endDate));
@@ -46,15 +125,15 @@ Gantt.prototype.show = function() {
     jQuery("div.ganttview-hzheader-days div.ganttview-hzheader-day:last-child", container).addClass("last");
     jQuery("div.ganttview-hzheader-months div.ganttview-hzheader-month:last-child", container).addClass("last");
 
-    if (! $(this.options.container).data('readonly')) {
+    if (!$(this.options.container).data('readonly')) {
         this.listenForBlockResize(startDate);
         this.listenForBlockMove(startDate);
-    }
-    else {
+    } else {
         this.options.allowResizes = false;
         this.options.allowMoves = false;
     }
 };
+
 
 Gantt.prototype.infoTooltip = function(content) {
     var markdown = $("<div>", {"class": "markdown"}).append(content);
@@ -94,6 +173,7 @@ Gantt.prototype.renderVerticalHeader = function() {
     headerDiv.append(itemDiv);
 
     return headerDiv;
+    
 };
 
 // Render right part of the chart (top header + grid + bars)
@@ -111,6 +191,7 @@ Gantt.prototype.renderSlider = function(startDate, endDate) {
 
 // Render top header (days)
 Gantt.prototype.renderHorizontalHeader = function(dates) {
+    
     var headerDiv = jQuery("<div>", { "class": "ganttview-hzheader" });
     var monthsDiv = jQuery("<div>", { "class": "ganttview-hzheader-months" });
     var daysDiv = jQuery("<div>", { "class": "ganttview-hzheader-days" });
@@ -216,48 +297,6 @@ Gantt.prototype.addBlocks = function(slider, start) {
     }
 };
 
-// Gantt.prototype.addTaskBarText = function(container, record, size) {
-
-//     // Create the text content
-//     const newContent = $('<span>')
-//     .text(record.title + ' ' + record.progress + ' ' + record.assignee)
-//     .css({
-//     position: 'absolute',
-//     whiteSpace: 'nowrap', // Prevent text wrapping
-//     });
-
-//     // Append the text content to the same container as the taskbar
-//     container.parent().append(newContent);
-
-//     // Function to adjust the position of the text
-//     function adjustTextPosition() {
-//     const taskbarOffset = container.offset();
-//     const taskbarWidth = container.outerWidth();
-//     const textWidth = newContent.outerWidth();
-
-//     // Position the text just at the end of the taskbar
-//     newContent.css({
-//     left: taskbarOffset.left + taskbarWidth + textWidth + 20 + 'px', // Align to the end of the taskbar
-//     top: taskbarOffset.top + container.outerHeight() / 2 - newContent.outerHeight() / 2 + 'px', // Center vertically
-//     });
-//     }
-
-//     // Initial position adjustment
-//     adjustTextPosition();
-
-//     // // Set up event listeners to update the position dynamically
-//     // container.on('mousemove resize', function () {
-//     // adjustTextPosition();
-//     // });
-
-//     // // If you're using a drag-and-resize library (like jQuery UI)
-//     container.on('drag resize', function () {
-//     adjustTextPosition();
-//     });
-
-
-// };
-
 Gantt.prototype.addTaskBarText = function(container, record, size) {
     var textSpan = $('<span>')
     .html('<strong>' + record.title + ' ' + record.progress + '</strong> ' + record.assignee);    
@@ -304,7 +343,8 @@ Gantt.prototype.getTaskTooltip = function(record) {
 Gantt.prototype.getProjectTooltip = function(record) {
     var tooltip = $('<span>');
 
-    if ('project-manager' in record.users) {
+    if (record.users && 'project-manager' in record.users) 
+        {
         var projectManagerLabel = $(this.options.container).data('label-project-manager');
         var list = $('<ul>');
 
@@ -365,27 +405,16 @@ Gantt.prototype.setBarColor = function(block, record) {
                     "width": record.progress,
                 }
             }));
+            
         }
     }
+    
 };
 
-// Setup jquery-ui resizable
-// Gantt.prototype.listenForBlockResize = function(startDate) {
-//     var self = this;
 
-//     jQuery("div.ganttview-block", this.options.container).resizable({
-//         grid: this.options.cellWidth,
-//         handles: "e,w",
-//         delay: 300,
-//         stop: function() {
-//             var block = jQuery(this);
-//             self.updateDataAndPosition(block, startDate);
-//             self.saveRecord(block.data("record"));
-//         }
-//     });
-// };
 
 Gantt.prototype.listenForBlockResize = function(startDate) {
+    
     var self = this;
 
     jQuery("div.ganttview-block", this.options.container).resizable({
@@ -510,16 +539,35 @@ Gantt.prototype.getDates = function(start, end) {
 
 // Convert data to Date object
 Gantt.prototype.prepareData = function(data) {
-    for (var i = 0; i < data.length; i++) {
-        var start = new Date(data[i].start[0], data[i].start[1] - 1, data[i].start[2], 0, 0, 0, 0);
-        data[i].start = start;
+    const validData = [];
 
-        var end = new Date(data[i].end[0], data[i].end[1] - 1, data[i].end[2], 0, 0, 0, 0);
-        data[i].end = end;
+    for (var i = 0; i < data.length; i++) {
+        var item = data[i];
+
+        if (!Array.isArray(item.start) || item.start.length !== 3 ||
+            !Array.isArray(item.end) || item.end.length !== 3) {
+            console.warn("⚠️ Skipping item with invalid dates:", item);
+            continue;
+        }
+
+        try {
+            item.start = new Date(item.start[0], item.start[1] - 1, item.start[2]);
+            item.end = new Date(item.end[0], item.end[1] - 1, item.end[2]);
+
+            if (isNaN(item.start) || isNaN(item.end)) {
+                console.warn("⚠️ Skipping item with NaN dates:", item);
+                continue;
+            }
+
+            validData.push(item);
+        } catch (e) {
+            console.error("❌ Failed to parse date:", item, e);
+        }
     }
 
-    return data;
+    return validData;
 };
+
 
 // Get the start and end date from the data provided
 Gantt.prototype.getDateRange = function(minDays) {
@@ -558,6 +606,22 @@ Gantt.prototype.getDateRange = function(minDays) {
 
     return [minStart, maxEnd];
 };
+// Try to read sprints if embedded into DOM via data-sprints attribute
+const container = document.querySelector('#gantt-chart');
+if (container) {
+    const rawData = container.getAttribute('data-sprints');
+    if (rawData) {
+        try {
+            const sprints = JSON.parse(rawData);
+            console.log("📦 SPRINTS (from data-sprints attr):", sprints);
+        } catch (e) {
+            console.warn("❌ Failed to parse sprint data", e);
+        }
+    } else {
+        console.log("⚠️ No data-sprints attribute found");
+    }
+}
+
 
 // Returns the number of day between 2 dates
 Gantt.prototype.daysBetween = function(start, end) {

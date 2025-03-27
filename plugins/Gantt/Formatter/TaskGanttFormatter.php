@@ -58,6 +58,9 @@ class TaskGanttFormatter extends BaseFormatter implements FormatterInterface
             'type' => 'task',
             'id' => $task['id'],
             'title' => $task['title'],
+            'sprint_id' => isset($task['sprint_id']) ? $task['sprint_id'] : null,
+
+
             'start' => array(
     (int) date('Y', is_numeric($start) ? $start : strtotime($start)),
     (int) date('n', is_numeric($start) ? $start : strtotime($start)),

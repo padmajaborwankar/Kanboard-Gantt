@@ -18,6 +18,7 @@
         <div
             id="gantt-chart"
             data-records='<?= json_encode($tasks, JSON_HEX_APOS) ?>'
+            data-sprints='<?= json_encode($sprints, JSON_HEX_APOS | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>'
             data-save-url="<?= $this->url->href('TaskGanttController', 'save', array('project_id' => $project['id'], 'plugin' => 'Gantt')) ?>"
             data-label-start-date="<?= t('Start date:') ?>"
             data-label-end-date="<?= t('Due date:') ?>"
@@ -28,4 +29,9 @@
     <?php else: ?>
         <p class="alert"><?= t('There is no task in your project.') ?></p>
     <?php endif ?>
+    <script>
+    console.log("📦 Fetched sprints from PHP:");
+    console.log(<?= json_encode($sprints ?? [], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?>);
+</script>
+
 </section>

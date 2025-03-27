@@ -620,7 +620,7 @@ return array(
     'Kanboard\\Model\\ProjectUserRoleModel' => $baseDir . '/app/Model/ProjectUserRoleModel.php',
     'Kanboard\\Model\\RememberMeSessionModel' => $baseDir . '/app/Model/RememberMeSessionModel.php',
     'Kanboard\\Model\\SettingModel' => $baseDir . '/app/Model/SettingModel.php',
-    'Kanboard\\Model\\SprintModel' => $baseDir . '/app/Model/SprintModel.php',
+    'Kanboard\\Model\\SprintModel' => $baseDir . '/app/Model/sprintmodel.php',
     'Kanboard\\Model\\SubtaskModel' => $baseDir . '/app/Model/SubtaskModel.php',
     'Kanboard\\Model\\SubtaskPositionModel' => $baseDir . '/app/Model/SubtaskPositionModel.php',
     'Kanboard\\Model\\SubtaskStatusModel' => $baseDir . '/app/Model/SubtaskStatusModel.php',

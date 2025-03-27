@@ -16,30 +16,41 @@ class TaskGanttController extends BaseController
      * Show Gantt chart for one project
      */
     public function show()
-    {
-        $project = $this->getProject();
-        $search = $this->helper->projectHeader->getSearchQuery($project);
-        $sorting = $this->request->getStringParam('sorting', '');
-        $filter = $this->taskLexer->build($search);
-    
-        if($sorting === '') {
-            $sorting = $this->configModel->get('gantt_task_sort', 'board');
-        }
-    
-        if ($sorting === 'date') {
-            $filter->getQuery()->asc(TaskModel::TABLE.'.date_started')->asc(TaskModel::TABLE.'.date_creation');
-        } else {
-            $filter->getQuery()->asc('column_position')->asc(TaskModel::TABLE.'.position');
-        }
-    
-        $this->response->html($this->helper->layout->app('Gantt:task_gantt/show', array(
-            'project' => $project,
-            'title' => $project['name'],
-            'description' => $this->helper->projectHeader->getDescription($project),
-            'sorting' => $sorting,
-            'tasks' => $filter->format($this->taskGanttFormatter),
-        )));
+{
+    error_log("✅ TaskGanttController@show HIT!");
+
+    $project = $this->getProject();
+    $search = $this->helper->projectHeader->getSearchQuery($project);
+    $sorting = $this->request->getStringParam('sorting', '');
+    $filter = $this->taskLexer->build($search);
+
+    // ✅ Set default sorting if none is provided
+    if ($sorting === '') {
+        $sorting = $this->configModel->get('gantt_task_sort', 'board');
     }
+
+    // ✅ Apply sorting logic
+    if ($sorting === 'date') {
+        $filter->getQuery()->asc(TaskModel::TABLE . '.date_started')->asc(TaskModel::TABLE . '.date_creation');
+    } else {
+        $filter->getQuery()->asc('column_position')->asc(TaskModel::TABLE . '.position');
+    }
+
+    // ✅ Fetch sprints for this project
+    $sprints = $this->db->table('sprints')->eq('project_id', $project['id'])->findAll();
+
+    // ✅ Render the view
+    $this->response->html($this->helper->layout->app('Gantt:task_gantt/show', [
+        'project' => $project,
+        'title' => $project['name'],
+        'description' => $this->helper->projectHeader->getDescription($project),
+        'sorting' => $sorting,
+        'tasks' => $filter->format($this->taskGanttFormatter),
+        'sprints' => $sprints, // 👈 this passes $sprints to the view
+    ]));
+
+}
+
 
     /**
      * Save new task start date and due date

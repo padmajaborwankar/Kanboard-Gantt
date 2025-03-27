@@ -3,7 +3,7 @@
         'name' => 'kanboard/kanboard',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '01007ff398c2f60e58890296e1fca8be4ea1168d',
+        'reference' => 'fe57adb691775e2bad111145f1e09d33b4508d1e',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -40,7 +40,7 @@
         'kanboard/kanboard' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '01007ff398c2f60e58890296e1fca8be4ea1168d',
+            'reference' => 'fe57adb691775e2bad111145f1e09d33b4508d1e',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -181,7 +181,7 @@
         'roave/security-advisories' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => 'af199f9f0a8c465dd03b06977d83d5b5cbe32a3a',
+            'reference' => '786548323f3a9452244ddf83672e34c260d6b717',
             'type' => 'metapackage',
             'install_path' => null,
             'aliases' => array(),
