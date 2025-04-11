@@ -1,6 +1,7 @@
 // Based on jQuery.ganttView v.0.8.8 Copyright (c) 2010 JC Grubbs - jc.grubbs@devmynd.com - MIT License
 var Gantt = function() {
     this.data = [];
+    this.expandedSprints = new Set(); // Track which sprints are expanded
 
     this.options = {
         container: "#gantt-chart",
@@ -49,21 +50,32 @@ Gantt.prototype.show = function() {
     const tasksBySprint = {};
     const addedTaskIds = new Set(); // ✅ To avoid duplicates
 
+    // Create a "No Sprint" category for null sprint_id tasks
+    tasksBySprint['no-sprint'] = [];
+
     tasks.forEach(t => {
-        if (!t.sprint_id) return; // Skip if no sprint
-        if (!tasksBySprint[t.sprint_id]) {
-            tasksBySprint[t.sprint_id] = [];
+        if (!t.sprint_id) {
+            tasksBySprint['no-sprint'].push(t);
+        } else {
+            if (!tasksBySprint[t.sprint_id]) {
+                tasksBySprint[t.sprint_id] = [];
+            }
+            tasksBySprint[t.sprint_id].push(t);
         }
-        tasksBySprint[t.sprint_id].push(t);
     });
+
+    // Adjust sprint dates based on tasks within each sprint
+    this.adjustSprintDates(sprints, tasksBySprint);
 
     // ✅ Start merging sprints + their tasks
     const mergedData = [];
 
+    // Add sprints first (tasks will be added when a sprint is clicked)
     sprints.forEach(sprint => {
         mergedData.push({
             type: 'sprint',
             id: 'sprint-' + sprint.id,
+            sprint_id: sprint.id,
             title: '📦 ' + sprint.name,
             start: new Date(sprint.start_date * 1000),
             end: new Date(sprint.end_date * 1000),
@@ -74,27 +86,54 @@ Gantt.prototype.show = function() {
             assignee: '',
             progress: '0%',
             not_defined: false,
-        });
-
-        (tasksBySprint[sprint.id] || []).forEach(task => {
-            if (
-                Array.isArray(task.start) && task.start.length === 3 &&
-                Array.isArray(task.end) && task.end.length === 3
-            ) {
-                task.start = new Date(task.start[0], task.start[1] - 1, task.start[2]);
-                task.end = new Date(task.end[0], task.end[1] - 1, task.end[2]);
-                task.type = 'task';
-                task.title = '↳ ' + task.title;
-                mergedData.push(task);
-                addedTaskIds.add(task.id);
-            }
+            has_tasks: tasksBySprint[sprint.id] && tasksBySprint[sprint.id].length > 0
         });
     });
 
-    // ✅ Add any orphan tasks not linked to sprints
-    tasks.forEach(task => {
-        if (addedTaskIds.has(task.id)) return;
+    // Add "No Sprint" category if there are tasks without sprint_id
+    if (tasksBySprint['no-sprint'].length > 0) {
+        const noSprintTasks = tasksBySprint['no-sprint'];
+        
+        // Find earliest start date and latest end date for "No Sprint" category
+        let earliestStart = new Date();
+        let latestEnd = new Date();
+        
+        noSprintTasks.forEach((task, index) => {
+            if (Array.isArray(task.start) && task.start.length === 3) {
+                const taskStart = new Date(task.start[0], task.start[1] - 1, task.start[2]);
+                if (index === 0 || taskStart < earliestStart) {
+                    earliestStart = taskStart;
+                }
+            }
+            
+            if (Array.isArray(task.end) && task.end.length === 3) {
+                const taskEnd = new Date(task.end[0], task.end[1] - 1, task.end[2]);
+                if (index === 0 || taskEnd > latestEnd) {
+                    latestEnd = taskEnd;
+                }
+            }
+        });
+        
+        mergedData.push({
+            type: 'sprint',
+            id: 'sprint-no-sprint',
+            sprint_id: 'no-sprint',
+            title: '📦 No Sprint',
+            start: earliestStart,
+            end: latestEnd,
+            color: {
+                background: '#e9ecef',
+                border: '#ced4da',
+            },
+            assignee: '',
+            progress: '0%',
+            not_defined: false,
+            has_tasks: true
+        });
+    }
 
+    // ✅ Process tasks for rendering
+    tasks.forEach(task => {
         if (
             Array.isArray(task.start) && task.start.length === 3 &&
             Array.isArray(task.end) && task.end.length === 3
@@ -103,10 +142,15 @@ Gantt.prototype.show = function() {
             task.end = new Date(task.end[0], task.end[1] - 1, task.end[2]);
             task.type = 'task';
             task.title = '↳ ' + task.title;
-            mergedData.push(task);
+            
+            // Don't add tasks to mergedData initially
+            // They will be added dynamically when a sprint is clicked
         }
     });
 
+    // Store original task data for later use when expanding sprints
+    this.originalTasks = tasks;
+    
     // ✅ Continue with rendering
     this.data = mergedData;
 
@@ -125,6 +169,9 @@ Gantt.prototype.show = function() {
     jQuery("div.ganttview-hzheader-days div.ganttview-hzheader-day:last-child", container).addClass("last");
     jQuery("div.ganttview-hzheader-months div.ganttview-hzheader-month:last-child", container).addClass("last");
 
+    // Setup click handlers for sprints
+    this.setupSprintClickHandlers(startDate, endDate);
+
     if (!$(this.options.container).data('readonly')) {
         this.listenForBlockResize(startDate);
         this.listenForBlockMove(startDate);
@@ -134,6 +181,141 @@ Gantt.prototype.show = function() {
     }
 };
 
+// Adjust sprint dates based on tasks within each sprint
+Gantt.prototype.adjustSprintDates = function(sprints, tasksBySprint) {
+    sprints.forEach(sprint => {
+        const sprintTasks = tasksBySprint[sprint.id] || [];
+        
+        if (sprintTasks.length > 0) {
+            let earliestStart = null;
+            let latestEnd = null;
+            
+            sprintTasks.forEach(task => {
+                if (Array.isArray(task.start) && task.start.length === 3) {
+                    const taskStart = new Date(task.start[0], task.start[1] - 1, task.start[2]);
+                    if (!earliestStart || taskStart < earliestStart) {
+                        earliestStart = taskStart;
+                    }
+                }
+                
+                if (Array.isArray(task.end) && task.end.length === 3) {
+                    const taskEnd = new Date(task.end[0], task.end[1] - 1, task.end[2]);
+                    if (!latestEnd || taskEnd > latestEnd) {
+                        latestEnd = taskEnd;
+                    }
+                }
+            });
+            
+            // Update sprint dates if tasks exist
+            if (earliestStart && latestEnd) {
+                sprint.start_date = Math.floor(earliestStart.getTime() / 1000);
+                sprint.end_date = Math.floor(latestEnd.getTime() / 1000);
+            }
+        }
+    });
+};
+
+// Setup click handlers for expanding/collapsing sprints
+Gantt.prototype.setupSprintClickHandlers = function(startDate, endDate) {
+    const self = this;
+    const container = $(this.options.container);
+
+    // Use event delegation to attach the click handler to a persistent parent element
+    container.off('click', '.ganttview-vtheader-series-name[data-sprint-id]'); // Remove any previous handlers
+    container.on('click', '.ganttview-vtheader-series-name[data-sprint-id]', function() {
+        const sprintId = $(this).data('sprint-id');
+
+        if (self.expandedSprints.has(sprintId)) {
+            // Collapse: remove tasks for this sprint
+            self.expandedSprints.delete(sprintId);
+            self.collapseSprintTasks(sprintId, startDate, endDate);
+        } else {
+            // Expand: add tasks for this sprint
+            self.expandedSprints.add(sprintId);
+            self.expandSprintTasks(sprintId, startDate, endDate);
+        }
+
+        // Toggle visual indicator
+        $(this).toggleClass('expanded');
+    });
+};
+
+// Expand sprint to show tasks
+Gantt.prototype.expandSprintTasks = function(sprintId, startDate, endDate) {
+    const self = this;
+    const container = $(this.options.container);
+    const sprintIndex = this.findSprintIndex(sprintId);
+    
+    if (sprintIndex === -1) return;
+    
+    // Get tasks for this sprint
+    let tasksToAdd = [];
+    if (sprintId === 'no-sprint') {
+        tasksToAdd = this.originalTasks.filter(t => !t.sprint_id);
+    } else {
+        tasksToAdd = this.originalTasks.filter(t => t.sprint_id === sprintId);
+    }
+    
+    // Insert tasks after the sprint in the data array
+    tasksToAdd.forEach((task, i) => {
+        this.data.splice(sprintIndex + 1 + i, 0, task);
+    });
+    
+    // Redraw the chart
+    this.redrawChart(startDate, endDate);
+};
+
+// Collapse sprint to hide tasks
+Gantt.prototype.collapseSprintTasks = function(sprintId, startDate, endDate) {
+    const self = this;
+    
+    // Remove tasks for this sprint from the data array
+    if (sprintId === 'no-sprint') {
+        this.data = this.data.filter(item => !(item.type === 'task' && !item.sprint_id));
+    } else {
+        this.data = this.data.filter(item => !(item.type === 'task' && item.sprint_id === sprintId));
+    }
+    
+    // Redraw the chart
+    this.redrawChart(startDate, endDate);
+};
+
+// Redraw the chart with updated data
+Gantt.prototype.redrawChart = function(startDate, endDate) {
+    const container = $(this.options.container);
+    
+    // Clear existing chart
+    container.empty();
+    
+    // Redraw chart with updated data
+    const chart = jQuery("<div>", { "class": "ganttview" });
+    chart.append(this.renderVerticalHeader());
+    chart.append(this.renderSlider(startDate, endDate));
+    container.append(chart);
+    
+    jQuery("div.ganttview-grid-row div.ganttview-grid-row-cell:last-child", container).addClass("last");
+    jQuery("div.ganttview-hzheader-days div.ganttview-hzheader-day:last-child", container).addClass("last");
+    jQuery("div.ganttview-hzheader-months div.ganttview-hzheader-month:last-child", container).addClass("last");
+    
+    // Re-setup click handlers
+    this.setupSprintClickHandlers(startDate, endDate);
+    
+    // Re-setup resize/move handlers
+    if (!container.data('readonly')) {
+        this.listenForBlockResize(startDate);
+        this.listenForBlockMove(startDate);
+    }
+};
+
+// Find index of a sprint in the data array
+Gantt.prototype.findSprintIndex = function(sprintId) {
+    for (let i = 0; i < this.data.length; i++) {
+        if (this.data[i].type === 'sprint' && this.data[i].sprint_id === sprintId) {
+            return i;
+        }
+    }
+    return -1;
+};
 
 Gantt.prototype.infoTooltip = function(content) {
     var markdown = $("<div>", {"class": "markdown"}).append(content);
@@ -153,20 +335,48 @@ Gantt.prototype.renderVerticalHeader = function() {
             .append(this.infoTooltip(this.getVerticalHeaderTooltip(this.data[i])))
             .append("&nbsp;");
 
-        if (this.data[i].type == "task") {
+        if (this.data[i].type === 'task') {
             content.append(jQuery('<strong>').text('#'+this.data[i].id+' '));
             content.append(jQuery("<a>", {"href": this.data[i].link, "title": this.data[i].title}).text(this.data[i].title));
+            
+            var seriesName = jQuery("<div>", {
+                "class": "ganttview-vtheader-series-name task-item",
+                "data-task-id": this.data[i].id
+            }).append(content);
+            
+            seriesDiv.append(seriesName);
         }
         else {
+            // Add expand/collapse indicator for sprints
+            var expandIcon = jQuery("<i>", {"class": "fa fa-plus-square-o expand-icon"});
+            content.prepend(expandIcon).append("&nbsp;");
+            
             content
                 .append(jQuery("<a>", {"href": this.data[i].board_link, "title": $(this.options.container).data("label-board-link")}).append('<i class="fa fa-th"></i>'))
                 .append("&nbsp;")
                 .append(jQuery("<a>", {"href": this.data[i].gantt_link, "title": $(this.options.container).data("label-gantt-link")}).append('<i class="fa fa-sliders"></i>'))
                 .append("&nbsp;")
                 .append(jQuery("<a>", {"href": this.data[i].link}).text(this.data[i].title));
+            
+            // Add task count indicator
+            if (this.data[i].has_tasks) {
+                content.append("&nbsp;");
+                var taskCountSpan = jQuery("<span>", {"class": "task-count"}).text(
+                    "(" + (this.data[i].sprint_id === 'no-sprint' ? 
+                        this.originalTasks.filter(t => !t.sprint_id).length : 
+                        this.originalTasks.filter(t => t.sprint_id === this.data[i].sprint_id).length) + 
+                    " tasks)"
+                );
+                content.append(taskCountSpan);
+            }
+            
+            var seriesName = jQuery("<div>", {
+                "class": "ganttview-vtheader-series-name sprint-item",
+                "data-sprint-id": this.data[i].sprint_id
+            }).append(content);
+            
+            seriesDiv.append(seriesName);
         }
-
-        seriesDiv.append(jQuery("<div>", {"class": "ganttview-vtheader-series-name"}).append(content));
     }
 
     itemDiv.append(seriesDiv);
@@ -300,24 +510,16 @@ Gantt.prototype.addBlocks = function(slider, start) {
 Gantt.prototype.addTaskBarText = function(container, record, size) {
     var textSpan = $('<span>')
     .html('<strong>' + record.title + ' ' + record.progress + '</strong> ' + record.assignee);    
-    // Append the text to the container
+    
     container.html(textSpan);
-
-    // Apply absolute positioning to the text outside the taskbar
-    // container.css({
-    //     "position": "absolute",     // Position the text relative to the taskbar
-    //     "left": "100%",             // Position the text at the right end of the taskbar
-    //     "margin-left": "3px"        // Add some space between the taskbar and text
-    // });
     container.css({
-        "position": "absolute",     // Position the text relative to the taskbar
-        "left": "100%",             // Position the text at the right end of the taskbar
-        "margin-left": "3px",       // Add some space between the taskbar and text
-        "top": "50%",               // Vertically center the text
-        "transform": "translateY(-50%)"  // Adjust for exact vertical centering
+        "position": "absolute",
+        "left": "100%",
+        "margin-left": "3px",
+        "top": "50%",
+        "transform": "translateY(-50%)"
     });
 };
-
 
 // Get tooltip for vertical header
 Gantt.prototype.getVerticalHeaderTooltip = function(record) {
@@ -411,8 +613,6 @@ Gantt.prototype.setBarColor = function(block, record) {
     
 };
 
-
-
 Gantt.prototype.listenForBlockResize = function(startDate) {
     
     var self = this;
@@ -444,7 +644,6 @@ Gantt.prototype.listenForBlockResize = function(startDate) {
         },
     });
 };
-
 
 // Setup jquery-ui drag and drop
 Gantt.prototype.listenForBlockMove = function(startDate) {
@@ -538,6 +737,7 @@ Gantt.prototype.getDates = function(start, end) {
 };
 
 // Convert data to Date object
+// Convert data to Date object
 Gantt.prototype.prepareData = function(data) {
     const validData = [];
 
@@ -567,7 +767,6 @@ Gantt.prototype.prepareData = function(data) {
 
     return validData;
 };
-
 
 // Get the start and end date from the data provided
 Gantt.prototype.getDateRange = function(minDays) {
@@ -606,22 +805,6 @@ Gantt.prototype.getDateRange = function(minDays) {
 
     return [minStart, maxEnd];
 };
-// Try to read sprints if embedded into DOM via data-sprints attribute
-const container = document.querySelector('#gantt-chart');
-if (container) {
-    const rawData = container.getAttribute('data-sprints');
-    if (rawData) {
-        try {
-            const sprints = JSON.parse(rawData);
-            console.log("📦 SPRINTS (from data-sprints attr):", sprints);
-        } catch (e) {
-            console.warn("❌ Failed to parse sprint data", e);
-        }
-    } else {
-        console.log("⚠️ No data-sprints attribute found");
-    }
-}
-
 
 // Returns the number of day between 2 dates
 Gantt.prototype.daysBetween = function(start, end) {
@@ -677,3 +860,37 @@ Gantt.prototype.compareDate = function(date1, date2) {
         throw new TypeError(date1 + " - " + date2);
     }
 };
+
+// Add CSS styles for sprint expansion/collapse
+(function() {
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerHTML = `
+        .ganttview-vtheader-series-name.sprint-item {
+            cursor: pointer;
+            font-weight: bold;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+            padding: 2px 5px;
+        }
+        
+        .ganttview-vtheader-series-name.sprint-item:hover {
+            background-color: #e9ecef;
+        }
+        
+        .ganttview-vtheader-series-name.expanded .fa-plus-square-o:before {
+            content: "\\f147"; /* fa-minus-square-o */
+        }
+        
+        .task-count {
+            font-size: 0.9em;
+            color: #6c757d;
+            font-weight: normal;
+        }
+        
+        .task-item {
+            padding-left: 15px;
+        }
+    `;
+    document.head.appendChild(style);
+})();

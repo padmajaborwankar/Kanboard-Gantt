@@ -134,3 +134,18 @@ div.ganttview-progress-bar {
     bottom: 0;
     opacity: 0.4;
 }
+.task-container {
+    display: none; /* Hidden by default */
+    margin-left: 15px;
+    padding: 5px;
+    border-left: 2px solid #ddd;
+}
+
+.sprint-header {
+    font-size: 14px;
+    padding: 5px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+}
