@@ -334,7 +334,7 @@ Gantt.prototype.renderVerticalHeader = function() {
         var content = jQuery("<span>")
             .append(this.infoTooltip(this.getVerticalHeaderTooltip(this.data[i])))
             .append("&nbsp;");
-
+ 
         if (this.data[i].type === 'task') {
             content.append(jQuery('<strong>').text('#'+this.data[i].id+' '));
             content.append(jQuery("<a>", {"href": this.data[i].link, "title": this.data[i].title}).text(this.data[i].title));
@@ -348,14 +348,8 @@ Gantt.prototype.renderVerticalHeader = function() {
         }
         else {
             // Add expand/collapse indicator for sprints
-            var expandIcon = jQuery("<i>", {"class": "fa fa-plus-square-o expand-icon"});
-            content.prepend(expandIcon).append("&nbsp;");
             
             content
-                .append(jQuery("<a>", {"href": this.data[i].board_link, "title": $(this.options.container).data("label-board-link")}).append('<i class="fa fa-th"></i>'))
-                .append("&nbsp;")
-                .append(jQuery("<a>", {"href": this.data[i].gantt_link, "title": $(this.options.container).data("label-gantt-link")}).append('<i class="fa fa-sliders"></i>'))
-                .append("&nbsp;")
                 .append(jQuery("<a>", {"href": this.data[i].link}).text(this.data[i].title));
             
             // Add task count indicator
