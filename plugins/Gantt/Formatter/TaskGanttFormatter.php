@@ -72,8 +72,8 @@ class TaskGanttFormatter extends BaseFormatter implements FormatterInterface
     (int) date('j', is_numeric($end) ? $end : strtotime($end)),
 ),
 
-            'column_title' => $task['column_name'],
-            'assignee' => $task['assignee_name'] ?: $task['assignee_username'],
+            'column_title' => $task['column_name'] ?? '',
+            'assignee' => $task['assignee_name'] ?? ($task['assignee_username'] ?? 'Unassigned'),
             'progress' => $this->taskModel->getProgress($task, $this->columns[$task['project_id']]).'%',
             'link' => $this->helper->url->href('TaskViewController', 'show', array('project_id' => $task['project_id'], 'task_id' => $task['id'])),
             'color' => $this->colorModel->getColorProperties($task['color_id']),
