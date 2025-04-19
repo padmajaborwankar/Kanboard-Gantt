@@ -608,34 +608,42 @@ Gantt.prototype.setBarColor = function(block, record) {
 };
 
 Gantt.prototype.listenForBlockResize = function(startDate) {
-    
     var self = this;
 
-    jQuery("div.ganttview-block", this.options.container).resizable({
-        grid: this.options.cellWidth,
-        handles: "e,w",
-        delay: 300,
-        resize: function(event, ui) {
-            var block = jQuery(this);
-            self.updateDataAndPosition(block, startDate);
-            self.saveRecord(block.data("record"));
+    jQuery("div.ganttview-block", this.options.container).each(function() {
+        var block = jQuery(this);
+        var record = block.data("record");
 
-            // Ensure the text stays to the right during resize
-            var blockText = block.data("text-element");
-            if (blockText) {
-                var taskbarOffset = block.offset();
-                var taskbarWidth = block.outerWidth();
-                blockText.css({
-                    left: taskbarOffset.left + taskbarWidth + "px",
-                    top: taskbarOffset.top + block.outerHeight() / 2 - blockText.outerHeight() / 2 + "px",
-                });
+        // Skip sprint blocks
+        if (block.hasClass("ganttview-sprint") || (record && record.type === "sprint")) {
+            block.css("cursor", "default"); // Optional: ensure no resize/move cursor
+            return;
+        }
+
+        // Apply resizable only to non-sprint blocks
+        block.resizable({
+            grid: self.options.cellWidth,
+            handles: "e,w",
+            delay: 300,
+            resize: function(event, ui) {
+                self.updateDataAndPosition(block, startDate);
+
+                // Keep text aligned during resize
+                var blockText = block.data("text-element");
+                if (blockText) {
+                    var taskbarOffset = block.offset();
+                    var taskbarWidth = block.outerWidth();
+                    blockText.css({
+                        left: taskbarOffset.left + taskbarWidth + "px",
+                        top: taskbarOffset.top + block.outerHeight() / 2 - blockText.outerHeight() / 2 + "px",
+                    });
+                }
+            },
+            stop: function() {
+                self.updateDataAndPosition(block, startDate);
+                self.saveRecord(record);
             }
-        },
-        stop: function(event, ui) {
-            var block = jQuery(this);
-            self.updateDataAndPosition(block, startDate);
-            self.saveRecord(block.data("record"));
-        },
+        });
     });
 };
 
@@ -643,15 +651,27 @@ Gantt.prototype.listenForBlockResize = function(startDate) {
 Gantt.prototype.listenForBlockMove = function(startDate) {
     var self = this;
 
-    jQuery("div.ganttview-block", this.options.container).draggable({
-        axis: "x",
-        delay: 300,
-        grid: [this.options.cellWidth, this.options.cellWidth],
-        stop: function() {
-            var block = jQuery(this);
-            self.updateDataAndPosition(block, startDate);
-            self.saveRecord(block.data("record"));
+    // Only apply draggable to non-sprint blocks
+    jQuery("div.ganttview-block", this.options.container).each(function() {
+        var block = jQuery(this);
+        var record = block.data("record");
+
+        // Skip sprint blocks
+        if (block.hasClass("ganttview-sprint") || (record && record.type === "sprint")) {
+            block.css("cursor", "default"); // Make sure cursor is not a move cursor
+            return;
         }
+
+        // Make non-sprint blocks draggable
+        block.draggable({
+            axis: "x",
+            delay: 300,
+            grid: [self.options.cellWidth, self.options.cellWidth],
+            stop: function() {
+                self.updateDataAndPosition(block, startDate);
+                self.saveRecord(record);
+            }
+        });
     });
 };
 
