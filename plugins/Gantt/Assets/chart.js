@@ -181,38 +181,44 @@ Gantt.prototype.show = function() {
     }
 };
 
-// Adjust sprint dates based on tasks within each sprint
 Gantt.prototype.adjustSprintDates = function(sprints, tasksBySprint) {
-    sprints.forEach(sprint => {
-        const sprintTasks = tasksBySprint[sprint.id] || [];
-        
-        if (sprintTasks.length > 0) {
-            let earliestStart = null;
-            let latestEnd = null;
-            
-            sprintTasks.forEach(task => {
-                if (Array.isArray(task.start) && task.start.length === 3) {
-                    const taskStart = new Date(task.start[0], task.start[1] - 1, task.start[2]);
-                    if (!earliestStart || taskStart < earliestStart) {
-                        earliestStart = taskStart;
-                    }
+    // Handle tasks with no sprints
+    const noSprintTasks = tasksBySprint['no-sprint'] || [];
+    if (noSprintTasks.length > 0) {
+        let earliestStart = null;
+        let latestEnd = null;
+
+        noSprintTasks.forEach(task => {
+            if (Array.isArray(task.start) && task.start.length === 3) {
+                const taskStart = new Date(task.start[0], task.start[1] - 1, task.start[2]);
+                if (!earliestStart || taskStart < earliestStart) {
+                    earliestStart = taskStart;
                 }
-                
-                if (Array.isArray(task.end) && task.end.length === 3) {
-                    const taskEnd = new Date(task.end[0], task.end[1] - 1, task.end[2]);
-                    if (!latestEnd || taskEnd > latestEnd) {
-                        latestEnd = taskEnd;
-                    }
-                }
-            });
-            
-            // Update sprint dates if tasks exist
-            if (earliestStart && latestEnd) {
-                sprint.start_date = Math.floor(earliestStart.getTime() / 1000);
-                sprint.end_date = Math.floor(latestEnd.getTime() / 1000);
             }
+
+            if (Array.isArray(task.end) && task.end.length === 3) {
+                const taskEnd = new Date(task.end[0], task.end[1] - 1, task.end[2]);
+                if (!latestEnd || taskEnd > latestEnd) {
+                    latestEnd = taskEnd;
+                }
+            }
+        });
+
+        // Update "No Sprint" category dates
+        const noSprintCategory = sprints.find(sprint => sprint.id === 'no-sprint');
+        if (noSprintCategory && earliestStart && latestEnd) {
+            noSprintCategory.start_date = Math.floor(earliestStart.getTime() / 1000);
+            noSprintCategory.end_date = Math.floor(latestEnd.getTime() / 1000);
         }
-    });
+    }
+
+    // Log updated sprint dates
+    console.log("Updated Sprints:", sprints.map(sprint => ({
+        id: sprint.id,
+        name: sprint.name,
+        start_date: new Date(sprint.start_date * 1000).toISOString(),
+        end_date: new Date(sprint.end_date * 1000).toISOString()
+    })));
 };
 
 // Setup click handlers for expanding/collapsing sprints
@@ -689,25 +695,19 @@ Gantt.prototype.updateDataAndPosition = function(block, startDate) {
     // Set new start date
     var daysFromStart = Math.round(offset / this.options.cellWidth);
     var newStart = this.addDays(this.cloneDate(startDate), daysFromStart);
-    if (!record.date_started_not_defined || this.compareDate(newStart, record.start)) {
-        record.start = this.addDays(this.cloneDate(startDate), daysFromStart);
-        record.date_started_not_defined = true;
-    }
-    else if (record.date_started_not_defined) {
-        delete record.start;
-    }
+    
+    // FIX: Always set start date, never delete it
+    record.start = this.addDays(this.cloneDate(startDate), daysFromStart);
+    record.date_started_not_defined = true;
 
     // Set new end date
     var width = block.outerWidth();
     var numberOfDays = Math.round(width / this.options.cellWidth) - 1;
+    
+    // FIX: Always set end date, never delete it
     var newEnd = this.addDays(this.cloneDate(newStart), numberOfDays);
-    if (!record.date_due_not_defined || this.compareDate(newEnd, record.end)) {
-        record.end = newEnd;
-        record.date_due_not_defined = true;
-    }
-    else if (record.date_due_not_defined) {
-        delete record.end;
-    }
+    record.end = newEnd;
+    record.date_due_not_defined = true;
 
     if (record.type === "task" && numberOfDays > 0) {
         this.addTaskBarText(jQuery("div.ganttview-block-text", block), record, numberOfDays);
@@ -723,9 +723,6 @@ Gantt.prototype.updateDataAndPosition = function(block, startDate) {
         .css("position", "relative")
         .css("margin-left", offset + "px");
 };
-
-// Creates a 3 dimensional array [year][month][day] of every day
-// between the given start and end dates
 Gantt.prototype.getDates = function(start, end) {
     var dates = [];
     dates[start.getFullYear()] = [];
