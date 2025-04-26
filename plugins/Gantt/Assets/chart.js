@@ -289,29 +289,39 @@ Gantt.prototype.collapseSprintTasks = function(sprintId, startDate, endDate) {
 // Redraw the chart with updated data
 Gantt.prototype.redrawChart = function(startDate, endDate) {
     const container = $(this.options.container);
-    
+
+    // ✅ Save scroll position
+    const scrollLeft = container.find(".ganttview-slide-container").scrollLeft();
+    const scrollTop = container.find(".ganttview-slide-container").scrollTop();
+
     // Clear existing chart
     container.empty();
-    
+
     // Redraw chart with updated data
     const chart = jQuery("<div>", { "class": "ganttview" });
     chart.append(this.renderVerticalHeader());
     chart.append(this.renderSlider(startDate, endDate));
     container.append(chart);
-    
+
     jQuery("div.ganttview-grid-row div.ganttview-grid-row-cell:last-child", container).addClass("last");
     jQuery("div.ganttview-hzheader-days div.ganttview-hzheader-day:last-child", container).addClass("last");
     jQuery("div.ganttview-hzheader-months div.ganttview-hzheader-month:last-child", container).addClass("last");
-    
+
+    // ✅ Restore scroll position
+    const newSlideContainer = container.find(".ganttview-slide-container");
+    newSlideContainer.scrollLeft(scrollLeft);
+    newSlideContainer.scrollTop(scrollTop);
+
     // Re-setup click handlers
     this.setupSprintClickHandlers(startDate, endDate);
-    
+
     // Re-setup resize/move handlers
     if (!container.data('readonly')) {
         this.listenForBlockResize(startDate);
         this.listenForBlockMove(startDate);
     }
 };
+
 
 // Find index of a sprint in the data array
 Gantt.prototype.findSprintIndex = function(sprintId) {
@@ -695,16 +705,12 @@ Gantt.prototype.updateDataAndPosition = function(block, startDate) {
     // Set new start date
     var daysFromStart = Math.round(offset / this.options.cellWidth);
     var newStart = this.addDays(this.cloneDate(startDate), daysFromStart);
-    
-    // FIX: Always set start date, never delete it
-    record.start = this.addDays(this.cloneDate(startDate), daysFromStart);
+    record.start = newStart;
     record.date_started_not_defined = true;
 
     // Set new end date
     var width = block.outerWidth();
     var numberOfDays = Math.round(width / this.options.cellWidth) - 1;
-    
-    // FIX: Always set end date, never delete it
     var newEnd = this.addDays(this.cloneDate(newStart), numberOfDays);
     record.end = newEnd;
     record.date_due_not_defined = true;
@@ -715,14 +721,55 @@ Gantt.prototype.updateDataAndPosition = function(block, startDate) {
 
     block.data("record", record);
 
-    // Remove top and left properties to avoid incorrect block positioning,
-    // set position to relative to keep blocks relative to scrollbar when scrolling
+    // Reset styles
     block
         .css("top", "")
         .css("left", "")
         .css("position", "relative")
         .css("margin-left", offset + "px");
+
+    // 🔁 Update sprint bar if task belongs to a sprint
+    if (record.type === "task" && record.sprint_id) {
+        const updatedTasks = this.originalTasks.filter(t => t.sprint_id === record.sprint_id);
+
+        let earliest = null;
+        let latest = null;
+
+        updatedTasks.forEach(task => {
+            if (task.start && (!earliest || task.start < earliest)) {
+                earliest = task.start;
+            }
+            if (task.end && (!latest || task.end > latest)) {
+                latest = task.end;
+            }
+        });
+
+        // Update the sprint block in this.data
+        const sprintIndex = this.findSprintIndex(record.sprint_id);
+        if (sprintIndex !== -1 && earliest && latest) {
+            this.data[sprintIndex].start = earliest;
+            this.data[sprintIndex].end = latest;
+        }
+
+        // Optional: also update raw sprint JSON if you’re persisting it
+        const rawSprints = $(this.options.container).data('sprints');
+        try {
+            const sprints = JSON.parse(rawSprints);
+            const sprint = sprints.find(s => s.id === record.sprint_id);
+            if (sprint) {
+                sprint.start_date = Math.floor(earliest.getTime() / 1000);
+                sprint.end_date = Math.floor(latest.getTime() / 1000);
+            }
+        } catch (e) {
+            console.warn("Could not update raw sprint JSON:", e);
+        }
+
+        // Redraw chart with updated sprint duration
+        const range = this.getDateRange(Math.floor((this.options.slideWidth / this.options.cellWidth) + 5));
+        this.redrawChart(range[0], range[1]);
+    }
 };
+
 Gantt.prototype.getDates = function(start, end) {
     var dates = [];
     dates[start.getFullYear()] = [];
