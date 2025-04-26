@@ -885,7 +885,7 @@ Gantt.prototype.compareDate = function(date1, date2) {
             font-weight: bold;
             background-color: #f8f9fa;
             border-radius: 3px;
-            padding: 2px 5px;
+            
         }
         
         .ganttview-vtheader-series-name.sprint-item:hover {
