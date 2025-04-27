@@ -643,7 +643,7 @@ Gantt.prototype.listenForBlockResize = function(startDate) {
             delay: 300,
             resize: function(event, ui) {
                 self.updateDataAndPosition(block, startDate);
-
+                self.saveRecord(record);
                 // Keep text aligned during resize
                 var blockText = block.data("text-element");
                 if (blockText) {
