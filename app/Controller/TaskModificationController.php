@@ -61,7 +61,7 @@ class TaskModificationController extends BaseController
                 $this->response->redirect($this->helper->url->to('TaskListController', 'show', ['project_id' => $task['project_id']]));
                 break;
             case 'dashboard':
-                $this->response->redirect($this->helper->url->to('DashboardController', 'show', [], 'project-tasks-'.$task['project_id']));
+                $this->response->redirect($this->helper->url->to('DashboardController', 'show', [], 'project-tasks-' . $task['project_id']));
                 break;
             case 'dashboard-tasks':
                 $this->response->redirect($this->helper->url->to('DashboardController', 'tasks', ['user_id' => $this->userSession->getId()]));
@@ -105,6 +105,7 @@ class TaskModificationController extends BaseController
             'tags' => $this->taskTagModel->getList($task['id']),
             'users_list' => $this->projectUserRoleModel->getAssignableUsersList($task['project_id']),
             'categories_list' => $this->categoryModel->getList($task['project_id']),
+            'sprints' => $this->sprintModel->getAllByProject($task['project_id']), // Fetch sprints for the project
         );
 
         $this->renderTemplate($task, $params);
@@ -141,6 +142,32 @@ class TaskModificationController extends BaseController
         $values = $this->request->getValues();
         $values['id'] = $task['id'];
         $values['project_id'] = $task['project_id'];
+
+        // Handle sprint assignment
+        if (!empty($values['new_sprint_name'])) {
+            // Create a new sprint
+            $sprintData = [
+                'name' => $values['new_sprint_name'],
+                'project_id' => $task['project_id'],
+                'start_date' => time(),
+                'end_date' => time() + (30 * 24 * 60 * 60) // Default to 30 days from now
+            ];
+
+            // Create sprint and get the ID
+            $sprint_id = $this->sprintModel->create($sprintData);
+
+            if ($sprint_id) {
+                $values['sprint_id'] = $sprint_id; // Assign the new sprint ID to the task
+            } else {
+                $this->flash->failure(t('Unable to create new sprint.'));
+                $this->edit($values, ['new_sprint_name' => ['Unable to create sprint']]);
+                return;
+            }
+        }
+        // Else, use the existing sprint_id from the values array
+
+        // Remove temporary sprint-related fields that aren't in the tasks table
+        unset($values['new_sprint_name']);
 
         list($valid, $errors) = $this->taskValidator->validateModification($values);
 

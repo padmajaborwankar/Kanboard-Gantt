@@ -15,6 +15,7 @@
         </div>
 
         <div class="task-form-secondary-column">
+            <?= $this->task->renderSprintField($project['id'], $values, $errors) ?>
             <?= $this->task->renderColorField($values) ?>
             <?= $this->task->renderAssigneeField($users_list, $values, $errors) ?>
             <?= $this->task->renderCategoryField($categories_list, $values, $errors) ?>
