@@ -91,6 +91,7 @@ class ClassProvider implements ServiceProviderInterface
             'TaskStatusModel',
             'TaskTagModel',
             'TaskMetadataModel',
+            'TaskDependencyModel',
             'ThemeModel',
             'TimezoneModel',
             'TransitionModel',

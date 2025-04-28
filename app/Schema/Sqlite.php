@@ -2,17 +2,31 @@
 
 namespace Schema;
 
-require_once __DIR__.'/Migration.php';
+require_once __DIR__ . '/Migration.php';
 
 use Kanboard\Core\Security\Token;
 use Kanboard\Core\Security\Role;
 use PDO;
 
-const VERSION = 128;
+const VERSION = 129;
+
+function version_129(PDO $pdo)
+{
+    $pdo->exec("
+        CREATE TABLE task_dependencies (
+            id INTEGER PRIMARY KEY,
+            task_id INTEGER NOT NULL,
+            dependent_task_id INTEGER NOT NULL,
+            FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+            FOREIGN KEY(dependent_task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+            UNIQUE(task_id, dependent_task_id)
+        )
+    ");
+}
 
 function version_128(PDO $pdo)
 {
-    $pdo->exec("ALTER TABLE comments ADD COLUMN visibility VARCHAR(25) NOT NULL DEFAULT '".Role::APP_USER."'");
+    $pdo->exec("ALTER TABLE comments ADD COLUMN visibility VARCHAR(25) NOT NULL DEFAULT '" . Role::APP_USER . "'");
 }
 
 function version_127(PDO $pdo)
@@ -22,8 +36,8 @@ function version_127(PDO $pdo)
 
 function version_126(PDO $pdo)
 {
-	$pdo->exec('ALTER TABLE subtask_time_tracking RENAME TO subtask_time_tracking_old');
-    
+    $pdo->exec('ALTER TABLE subtask_time_tracking RENAME TO subtask_time_tracking_old');
+
     $pdo->exec('
         CREATE TABLE subtask_time_tracking (
             id INTEGER PRIMARY KEY,
@@ -36,9 +50,9 @@ function version_126(PDO $pdo)
             FOREIGN KEY(subtask_id) REFERENCES subtasks(id) ON DELETE CASCADE
         )
     ');
-    
-    $pdo->exec('DROP INDEX subtasks_task_idx');    
-    $pdo->exec('CREATE INDEX subtasks_task_idx ON subtasks(task_id)'); 
+
+    $pdo->exec('DROP INDEX subtasks_task_idx');
+    $pdo->exec('CREATE INDEX subtasks_task_idx ON subtasks(task_id)');
     $pdo->exec('INSERT INTO subtask_time_tracking SELECT * FROM subtask_time_tracking_old');
     $pdo->exec('DROP TABLE subtask_time_tracking_old');
 }
@@ -326,7 +340,6 @@ function version_100(PDO $pdo)
 
     $pdo->exec("ALTER TABLE settings ADD COLUMN changed_by INTEGER DEFAULT 0 NOT NULL");
     $pdo->exec("ALTER TABLE settings ADD COLUMN changed_on INTEGER DEFAULT 0 NOT NULL");
-
 }
 
 function version_99(PDO $pdo)
@@ -338,7 +351,8 @@ function version_98(PDO $pdo)
 {
     $pdo->exec('ALTER TABLE files RENAME TO task_has_files');
 
-    $pdo->exec("
+    $pdo->exec(
+        "
         CREATE TABLE project_has_files (
             id INTEGER PRIMARY KEY,
             project_id INTEGER NOT NULL,
@@ -423,7 +437,7 @@ function version_92(PDO $pdo)
         } elseif ($row['action_name'] === 'TaskLogMoveAnotherColumn') {
             $row['action_name'] = '\Kanboard\Action\CommentCreationMoveTaskColumn';
         } elseif ($row['action_name'][0] !== '\\') {
-            $row['action_name'] = '\Kanboard\Action\\'.$row['action_name'];
+            $row['action_name'] = '\Kanboard\Action\\' . $row['action_name'];
         }
 
         $rq->execute(array($row['action_name'], $row['id']));
@@ -432,7 +446,7 @@ function version_92(PDO $pdo)
 
 function version_91(PDO $pdo)
 {
-    $pdo->exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT '".Role::APP_USER."'");
+    $pdo->exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT '" . Role::APP_USER . "'");
 
     $rq = $pdo->prepare('SELECT * FROM users');
     $rq->execute();
@@ -466,7 +480,7 @@ function version_90(PDO $pdo)
         )
     ");
 
-    $pdo->exec("ALTER TABLE project_has_users ADD COLUMN role TEXT NOT NULL DEFAULT '".Role::PROJECT_VIEWER."'");
+    $pdo->exec("ALTER TABLE project_has_users ADD COLUMN role TEXT NOT NULL DEFAULT '" . Role::PROJECT_VIEWER . "'");
 
     $rq = $pdo->prepare('SELECT * FROM project_has_users');
     $rq->execute();
@@ -1169,7 +1183,7 @@ function version_29(PDO $pdo)
     $parameters = $rq->fetch(PDO::FETCH_ASSOC);
 
     $rq = $pdo->prepare('INSERT INTO settings VALUES (?, ?)');
-    $rq->execute(array('board_highlight_period', defined('RECENT_TASK_PERIOD') ? RECENT_TASK_PERIOD : 48*60*60));
+    $rq->execute(array('board_highlight_period', defined('RECENT_TASK_PERIOD') ? RECENT_TASK_PERIOD : 48 * 60 * 60));
     $rq->execute(array('board_public_refresh_interval', defined('BOARD_PUBLIC_CHECK_INTERVAL') ? BOARD_PUBLIC_CHECK_INTERVAL : 60));
     $rq->execute(array('board_private_refresh_interval', defined('BOARD_CHECK_INTERVAL') ? BOARD_CHECK_INTERVAL : 10));
     $rq->execute(array('board_columns', $parameters['default_columns']));
@@ -1295,12 +1309,13 @@ function version_20(PDO $pdo)
 function version_19(PDO $pdo)
 {
     $pdo->exec("ALTER TABLE config ADD COLUMN api_token TEXT DEFAULT ''");
-    $pdo->exec("UPDATE config SET api_token='".Token::getToken()."'");
+    $pdo->exec("UPDATE config SET api_token='" . Token::getToken() . "'");
 }
 
 function version_18(PDO $pdo)
 {
-    $pdo->exec("
+    $pdo->exec(
+        "
         CREATE TABLE task_has_subtasks (
             id INTEGER PRIMARY KEY,
             title TEXT COLLATE NOCASE NOT NULL,
@@ -1316,7 +1331,8 @@ function version_18(PDO $pdo)
 
 function version_17(PDO $pdo)
 {
-    $pdo->exec("
+    $pdo->exec(
+        "
         CREATE TABLE task_has_files (
             id INTEGER PRIMARY KEY,
             name TEXT COLLATE NOCASE NOT NULL,
@@ -1330,7 +1346,8 @@ function version_17(PDO $pdo)
 
 function version_16(PDO $pdo)
 {
-    $pdo->exec("
+    $pdo->exec(
+        "
         CREATE TABLE project_has_categories (
             id INTEGER PRIMARY KEY,
             name TEXT COLLATE NOCASE NOT NULL,
@@ -1557,12 +1574,12 @@ function version_1(PDO $pdo)
     $pdo->exec("
         INSERT INTO users
         (username, password, is_admin)
-        VALUES ('admin', '".\password_hash('admin', PASSWORD_BCRYPT)."', '1')
+        VALUES ('admin', '" . \password_hash('admin', PASSWORD_BCRYPT) . "', '1')
     ");
 
     $pdo->exec("
         INSERT INTO config
         (webhooks_token)
-        VALUES ('".Token::getToken()."')
+        VALUES ('" . Token::getToken() . "')
     ");
 }

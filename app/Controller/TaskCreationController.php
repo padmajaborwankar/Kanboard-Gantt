@@ -39,19 +39,6 @@ class TaskCreationController extends BaseController
             'swimlanes_list' => $swimlanesList,
         )));
     }
-    public function create(array $values = [], array $errors = [])
-    {
-        $project_id = $this->request->getIntegerParam('project_id');
-
-        $sprints = $this->sprintModel->getAllByProject($project_id);
-
-        $this->response->html($this->template->render('task_creation/show', [
-            'project' => $this->projectModel->getById($project_id),
-            'sprints' => $sprints,
-            'values' => $values,
-            'errors' => $errors,
-        ]));
-    }
 
     /**
      * Validate and save a new task
@@ -66,7 +53,6 @@ class TaskCreationController extends BaseController
 
         // Debug values in a formatted way
         error_log('Task Creation Values: ' . json_encode($values, JSON_PRETTY_PRINT));
-        print_r($values);
 
         // Handle sprint assignment
         if (!empty($values['new_sprint_name'])) {
@@ -94,19 +80,27 @@ class TaskCreationController extends BaseController
 
         // Remove temporary sprint-related fields that aren't in the tasks table
         unset($values['new_sprint_name']);
+        $dependencies = isset($values['dependencies']) ? $values['dependencies'] : []; // Extract dependencies
+        unset($values['dependencies']); // Remove dependencies from $values
 
+        // Validate task creation
         list($valid, $errors) = $this->taskValidator->validateCreation($values);
 
-        if (! $valid) {
+        if (!$valid) {
             $this->flash->failure(t('Unable to create your task.'));
             $this->show($values, $errors);
-        } else if (! $this->helper->projectRole->canCreateTaskInColumn($project['id'], $values['column_id'])) {
+        } else if (!$this->helper->projectRole->canCreateTaskInColumn($project['id'], $values['column_id'])) {
             $this->flash->failure(t('You cannot create tasks in this column.'));
             $this->response->redirect($this->helper->url->to('BoardViewController', 'show', array('project_id' => $project['id'])), true);
         } else {
             $task_id = $this->taskCreationModel->create($values);
 
             if ($task_id > 0) {
+                // Handle dependencies
+                foreach ($dependencies as $dependencyId) {
+                    $this->taskDependencyModel->addDependency($task_id, $dependencyId);
+                }
+
                 $this->flash->success(t('Task created successfully.'));
                 $this->afterSave($project, $values, $task_id);
             } else {
@@ -115,6 +109,7 @@ class TaskCreationController extends BaseController
             }
         }
     }
+
     /**
      * Duplicate created tasks to multiple projects
      *

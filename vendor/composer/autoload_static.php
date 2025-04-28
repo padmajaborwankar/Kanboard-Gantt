@@ -837,7 +837,7 @@ class ComposerStaticInitf32829f08f3ec98b573eff131a9eb1d7
         'Kanboard\\Model\\ProjectUserRoleModel' => __DIR__ . '/../..' . '/app/Model/ProjectUserRoleModel.php',
         'Kanboard\\Model\\RememberMeSessionModel' => __DIR__ . '/../..' . '/app/Model/RememberMeSessionModel.php',
         'Kanboard\\Model\\SettingModel' => __DIR__ . '/../..' . '/app/Model/SettingModel.php',
-        'Kanboard\\Model\\SprintModel' => __DIR__ . '/../..' . '/app/Model/sprintmodel.php',
+        'Kanboard\\Model\\SprintModel' => __DIR__ . '/../..' . '/app/Model/SprintModel.php',
         'Kanboard\\Model\\SubtaskModel' => __DIR__ . '/../..' . '/app/Model/SubtaskModel.php',
         'Kanboard\\Model\\SubtaskPositionModel' => __DIR__ . '/../..' . '/app/Model/SubtaskPositionModel.php',
         'Kanboard\\Model\\SubtaskStatusModel' => __DIR__ . '/../..' . '/app/Model/SubtaskStatusModel.php',

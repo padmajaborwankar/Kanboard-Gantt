@@ -149,3 +149,10 @@ div.ganttview-progress-bar {
     border-radius: 3px;
     cursor: pointer;
 }
+.ganttview-dependency-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none; /* Prevent interaction with the lines */
+    z-index: 1;
+}

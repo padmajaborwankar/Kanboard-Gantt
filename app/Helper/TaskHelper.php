@@ -116,39 +116,39 @@ class TaskHelper extends Base
     }
 
     public function renderSprintField($projectId, array $values = array(), array $errors = array(), array $attributes = array())
-{
-    $html = $this->helper->form->label(t('Existing Sprint'), 'sprint_id');
-    
-    // Get sprints from database
-    $options = array();
-    $sprints = $this->sprintModel->getAllByProject($projectId);
-    if (!empty($sprints)) {
-        foreach ($sprints as $sprint) {
-            $options[$sprint['id']] = $this->helper->text->e($sprint['name']);
+    {
+        $html = $this->helper->form->label(t('Existing Sprint'), 'sprint_id');
+
+        // Get sprints from database
+        $options = array();
+        $sprints = $this->sprintModel->getAllByProject($projectId);
+        if (!empty($sprints)) {
+            foreach ($sprints as $sprint) {
+                $options[$sprint['id']] = $this->helper->text->e($sprint['name']);
+            }
+        } else {
+            $options[0] = t('None');
         }
-    } else {
-        $options[0] = t('None');
+
+        // Render sprint dropdown
+        $html .= $this->helper->form->select('sprint_id', $options, $values, $errors, $attributes);
+
+        // Always show the "New Sprint" field, but make it clear when to use it
+        $html .= '<div class="new-sprint-section" style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px;">';
+        $html .= $this->helper->form->label(t('OR Create New Sprint'), 'new_sprint_name');
+        $html .= $this->helper->form->text(
+            'new_sprint_name',
+            $values,
+            $errors,
+            array(
+                'placeholder' => t('Enter sprint name (e.g., Sprint 1, Q1 Sprint)')
+            )
+        );
+        $html .= '<p><small>' . t('If you enter a name here, a new sprint will be created.') . '</small></p>';
+        $html .= '</div>';
+
+        return $html;
     }
-    
-    // Render sprint dropdown
-    $html .= $this->helper->form->select('sprint_id', $options, $values, $errors, $attributes);
-    
-    // Always show the "New Sprint" field, but make it clear when to use it
-    $html .= '<div class="new-sprint-section" style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px;">';
-    $html .= $this->helper->form->label(t('OR Create New Sprint'), 'new_sprint_name');
-    $html .= $this->helper->form->text(
-        'new_sprint_name',
-        $values,
-        $errors,
-        array(
-            'placeholder' => t('Enter sprint name (e.g., Sprint 1, Q1 Sprint)')
-        )
-    );
-    $html .= '<p><small>' . t('If you enter a name here, a new sprint will be created.') . '</small></p>';
-    $html .= '</div>';
-    
-    return $html;
-}
     public function renderAssigneeField(array $users, array $values, array $errors = array(), array $attributes = array())
     {
         if (isset($values['project_id']) && ! $this->helper->projectRole->canChangeAssignee($values)) {
@@ -355,6 +355,33 @@ class TaskHelper extends Base
         }
 
         $html .= '</div>';
+
+        return $html;
+    }
+
+    public function renderDependencyField($projectId, $taskId, array $values = [], array $errors = [])
+    {
+        // Fetch all tasks in the project
+        $tasks = $this->taskFinderModel->getAll($projectId);
+
+        // Filter out tasks that would create circular dependencies
+        $validTasks = [];
+        foreach ($tasks as $task) {
+            if ($task['id'] != $taskId && !$this->taskDependencyModel->hasCircularDependency($taskId, $task['id'])) {
+                $validTasks[$task['id']] = $this->helper->text->e($task['title']);
+            }
+        }
+
+        // Render the dropdown
+        $html = $this->helper->form->label(t('Dependencies'), 'dependencies[]');
+        $html .= '<select name="dependencies[]" id="form-dependencies" class="form-control" multiple>';
+        foreach ($validTasks as $id => $title) {
+            $html .= sprintf('<option value="%d">%s</option>', $id, $title);
+        }
+        $html .= '</select>';
+
+        // Add error handling
+        $html .= $this->helper->form->errorList($errors, 'dependencies');
 
         return $html;
     }

@@ -42,10 +42,15 @@ Gantt.prototype.show = function() {
     } catch (e) {
         console.warn("❌ Could not parse sprints JSON:", e);
     }
-
+    
     console.log("📦 SPRINTS:", sprints);
     console.log("🧩 TASKS:", tasks);
-
+    
+    tasks.forEach(task => {
+        task.start = new Date(task.start);
+        task.end = new Date(task.end);
+    });
+    
     // ✅ Group tasks by sprint_id
     const tasksBySprint = {};
     const addedTaskIds = new Set(); // ✅ To avoid duplicates
@@ -146,6 +151,10 @@ Gantt.prototype.show = function() {
             // Don't add tasks to mergedData initially
             // They will be added dynamically when a sprint is clicked
         }
+    });
+
+    tasks.forEach(task => {
+        task.dependencies = task.dependency_ids || []; // Add dependencies from your backend data
     });
 
     // Store original task data for later use when expanding sprints
@@ -290,7 +299,7 @@ Gantt.prototype.collapseSprintTasks = function(sprintId, startDate, endDate) {
 Gantt.prototype.redrawChart = function(startDate, endDate) {
     const container = $(this.options.container);
 
-    // ✅ Save scroll position
+    // Save scroll position
     const scrollLeft = container.find(".ganttview-slide-container").scrollLeft();
     const scrollTop = container.find(".ganttview-slide-container").scrollTop();
 
@@ -307,7 +316,7 @@ Gantt.prototype.redrawChart = function(startDate, endDate) {
     jQuery("div.ganttview-hzheader-days div.ganttview-hzheader-day:last-child", container).addClass("last");
     jQuery("div.ganttview-hzheader-months div.ganttview-hzheader-month:last-child", container).addClass("last");
 
-    // ✅ Restore scroll position
+    // Restore scroll position
     const newSlideContainer = container.find(".ganttview-slide-container");
     newSlideContainer.scrollLeft(scrollLeft);
     newSlideContainer.scrollTop(scrollTop);
@@ -320,6 +329,9 @@ Gantt.prototype.redrawChart = function(startDate, endDate) {
         this.listenForBlockResize(startDate);
         this.listenForBlockMove(startDate);
     }
+
+    // Draw dependency lines
+    this.drawDependencyLines();
 };
 
 
@@ -482,27 +494,28 @@ Gantt.prototype.addBlockContainers = function() {
 };
 
 // Render bars
-Gantt.prototype.addBlocks = function(slider, start) {
-    var rows = jQuery("div.ganttview-blocks div.ganttview-block-container", slider);
-    var rowIdx = 0;
+Gantt.prototype.addBlocks = function(slider, startDate) {
+    const rows = jQuery("div.ganttview-blocks div.ganttview-block-container", slider);
+    let rowIdx = 0;
 
-    for (var i = 0; i < this.data.length; i++) {
-        var series = this.data[i];
-        var size = this.daysBetween(series.start, series.end) + 1;
-        var offset = this.daysBetween(start, series.start);
-        var text = jQuery("<div>", {
-          "class": "ganttview-block-text",
-          "css": {
-              "width": ((size * this.options.cellWidth) - 19) + "px"
-          }
+    for (let i = 0; i < this.data.length; i++) {
+        const series = this.data[i];
+        const size = this.daysBetween(series.start, series.end) + 1;
+        const offset = this.daysBetween(startDate, series.start);
+        const text = jQuery("<div>", {
+            "class": "ganttview-block-text",
+            "css": {
+                "width": ((size * this.options.cellWidth) - 19) + "px"
+            }
         });
 
-        var block = jQuery("<div>", {
+        const block = jQuery("<div>", {
             "class": "ganttview-block" + (this.options.allowMoves ? " ganttview-block-movable" : ""),
             "css": {
                 "width": ((size * this.options.cellWidth) - 9) + "px",
                 "margin-left": (offset * this.options.cellWidth) + "px"
-            }
+            },
+            "data-task-id": series.id // Add task ID for dependency tracking
         }).append(text);
 
         if (series.type === 'task') {
@@ -952,3 +965,67 @@ Gantt.prototype.compareDate = function(date1, date2) {
     `;
     document.head.appendChild(style);
 })();
+
+Gantt.prototype.drawDependencyLines = function() {
+    const container = $(this.options.container);
+    const canvas = $("<canvas>", {
+        class: "ganttview-dependency-lines",
+        width: container.width(),
+        height: container.height(),
+    }).appendTo(container);
+
+    const ctx = canvas[0].getContext("2d");
+    ctx.clearRect(0, 0, canvas.width(), canvas.height());
+
+    // Set line style
+    ctx.strokeStyle = "#007bff"; // Blue color for dependency lines
+    ctx.lineWidth = 2;
+
+    // Iterate over tasks and draw lines for dependencies
+    this.data.forEach(task => {
+        if (task.type === "task" && task.dependencies) {
+            task.dependencies.forEach(dependencyId => {
+                const dependentTask = this.data.find(t => t.id === dependencyId && t.type === "task");
+                if (dependentTask) {
+                    this.drawLineBetweenTasks(ctx, task, dependentTask);
+                }
+            });
+        }
+    });
+};
+
+Gantt.prototype.drawLineBetweenTasks = function(ctx, task, dependentTask) {
+    const container = $(this.options.container);
+
+    // Get task positions
+    const taskElement = container.find(`.ganttview-block[data-task-id="${task.id}"]`);
+    const dependentTaskElement = container.find(`.ganttview-block[data-task-id="${dependentTask.id}"]`);
+
+    if (taskElement.length && dependentTaskElement.length) {
+        const taskOffset = taskElement.offset();
+        const dependentTaskOffset = dependentTaskElement.offset();
+
+        // Calculate start and end points
+        const startX = taskOffset.left + taskElement.outerWidth();
+        const startY = taskOffset.top + taskElement.outerHeight() / 2;
+        const endX = dependentTaskOffset.left;
+        const endY = dependentTaskOffset.top + dependentTaskElement.outerHeight() / 2;
+
+        // Draw the line
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX - 10, startY); // Horizontal line
+        ctx.lineTo(endX - 10, endY); // Vertical line
+        ctx.lineTo(endX, endY); // Final horizontal line
+        ctx.stroke();
+
+        // Draw an arrowhead
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - 5, endY - 5);
+        ctx.lineTo(endX - 5, endY + 5);
+        ctx.closePath();
+        ctx.fillStyle = "#007bff";
+        ctx.fill();
+    }
+};

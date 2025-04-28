@@ -212,6 +212,7 @@ use Pimple\Container;
  * @property \Symfony\Component\EventDispatcher\EventDispatcher      $dispatcher
  * @property \Symfony\Component\Console\Application                  $cli
  * @property \JsonRPC\Server                                         $api
+ * @property \Kanboard\Model\TaskDependencyModel                     $taskDependencyModel
  */
 abstract class Base
 {
