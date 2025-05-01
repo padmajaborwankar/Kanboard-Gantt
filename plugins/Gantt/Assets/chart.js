@@ -153,10 +153,6 @@ Gantt.prototype.show = function() {
         }
     });
 
-    tasks.forEach(task => {
-        task.dependencies = task.dependency_ids || []; // Add dependencies from your backend data
-    });
-
     // Store original task data for later use when expanding sprints
     this.originalTasks = tasks;
     

@@ -55,4 +55,25 @@ class TaskDependencyModel extends Base
 
         return false;
     }
+
+    public function getDependenciesByTaskIds(array $taskIds)
+    {
+        $result = [];
+
+        if (empty($taskIds)) {
+            return $result;
+        }
+
+        $rows = $this->db->table(self::TABLE)
+            ->in('task_id', $taskIds)
+            ->columns('task_id', 'dependent_task_id')
+            ->findAll();
+
+        foreach ($rows as $row) {
+            $result[$row['task_id']][] = $row['dependent_task_id'];
+        }
+
+        return $result;
+    }
+
 }

@@ -30,8 +30,13 @@ class TaskGanttFormatter extends BaseFormatter implements FormatterInterface
     public function format()
     {
         $bars = array();
+        $tasks = $this->query->findAll();
+        $taskIds = array_column($tasks, 'id');
+        $dependencies = $this->taskDependencyModel->getDependenciesByTaskIds($taskIds);
 
-        foreach ($this->query->findAll() as $task) {
+        foreach ($tasks as $task) {
+            $taskId = $task['id'];
+            $task['dependencies'] = $dependencies[$taskId] ?? [];
             $bars[] = $this->formatTask($task);
         }
 
@@ -80,6 +85,7 @@ class TaskGanttFormatter extends BaseFormatter implements FormatterInterface
             'not_defined' => empty($task['date_due']) || empty($task['date_started']),
             'date_started_not_defined' => empty($task['date_started']),
             'date_due_not_defined' => empty($task['date_due']),
+            'dependencies' => $task['dependencies'] ?? [],
         );
     }
 }
