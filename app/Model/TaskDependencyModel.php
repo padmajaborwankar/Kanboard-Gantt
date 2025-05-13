@@ -76,4 +76,10 @@ class TaskDependencyModel extends Base
         return $result;
     }
 
+    public function removeAllDependencies($taskId)
+    {
+        return $this->db->table(self::TABLE)
+            ->eq('task_id', $taskId)
+            ->remove();
+    }
 }

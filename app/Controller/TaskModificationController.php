@@ -165,13 +165,20 @@ class TaskModificationController extends BaseController
             }
         }
         // Else, use the existing sprint_id from the values array
-
-        // Remove temporary sprint-related fields that aren't in the tasks table
+        // Remove fields that are not part of tasks table
         unset($values['new_sprint_name']);
+        $dependencies = isset($values['dependencies']) ? $values['dependencies'] : [];
+        unset($values['dependencies']);
 
         list($valid, $errors) = $this->taskValidator->validateModification($values);
 
         if ($valid && $this->updateTask($task, $values, $errors)) {
+            // Update dependencies
+            $this->taskDependencyModel->removeAllDependencies($task['id']); // clear old ones
+            foreach ($dependencies as $dependencyId) {
+                $this->taskDependencyModel->addDependency($task['id'], $dependencyId);
+            }
+
             $this->flash->success(t('Task updated successfully.'));
             $this->response->redirect($this->helper->url->to('TaskViewController', 'show', array('task_id' => $task['id'])), true);
         } else {

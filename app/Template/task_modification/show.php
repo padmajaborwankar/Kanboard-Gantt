@@ -35,6 +35,10 @@
             <?= $this->hook->render('template:task:form:third-column', array('values' => $values, 'errors' => $errors)) ?>
         </div>
 
+        <div class="task-form-secondary-column">
+            <?= $this->task->renderDependencyField($project['id'], isset($values['id']) ? $values['id'] : 0, $values, $errors) ?>
+        </div>
+
         <div class="task-form-bottom">
 
             <?= $this->hook->render('template:task:form:bottom-before-buttons', array('values' => $values, 'errors' => $errors)) ?>

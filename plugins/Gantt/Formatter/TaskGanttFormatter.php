@@ -67,15 +67,15 @@ class TaskGanttFormatter extends BaseFormatter implements FormatterInterface
 
 
             'start' => array(
-    (int) date('Y', is_numeric($start) ? $start : strtotime($start)),
-    (int) date('n', is_numeric($start) ? $start : strtotime($start)),
-    (int) date('j', is_numeric($start) ? $start : strtotime($start)),
-),
-'end' => array(
-    (int) date('Y', is_numeric($end) ? $end : strtotime($end)),
-    (int) date('n', is_numeric($end) ? $end : strtotime($end)),
-    (int) date('j', is_numeric($end) ? $end : strtotime($end)),
-),
+                (int) date('Y', is_numeric($start) ? $start : strtotime($start)),
+                (int) date('n', is_numeric($start) ? $start : strtotime($start)),
+                (int) date('j', is_numeric($start) ? $start : strtotime($start)),
+            ),
+            'end' => array(
+                (int) date('Y', is_numeric($end) ? $end : strtotime($end)),
+                (int) date('n', is_numeric($end) ? $end : strtotime($end)),
+                (int) date('j', is_numeric($end) ? $end : strtotime($end)),
+            ),
 
             'column_title' => $task['column_name'] ?? '',
             'assignee' => $task['assignee_name'] ?? ($task['assignee_username'] ?? 'Unassigned'),
